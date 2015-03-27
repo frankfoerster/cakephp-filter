@@ -1,0 +1,22 @@
+{
+  "name": "frankfoerster/cakephp-filter",
+  "description": "CakePHP Filter Plugin",
+  "type": "cakephp-plugin",
+  "keywords": ["cakephp", "filter", "request", "sort", "pagination"],
+  "homepage": "https://github.com/frankfoerster/cakephp-filter",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Frank Förster",
+      "homepage": "http://frankfoerster.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=5.3.0",
+    "composer/installers": "*"
+  },
+  "extra": {
+    "installer-name": "Filter"
+  }
+}
