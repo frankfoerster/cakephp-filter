@@ -205,7 +205,8 @@ class FilterHelper extends AppHelper {
 		}
 
 		if (!empty($this->_View->activeSort)) {
-			$field = array_keys($this->_View->activeSort)[0];
+			$fields = array_keys($this->_View->activeSort);
+            $field = $fields[0];
 			$dir = $this->_View->activeSort[$field];
 			if (($field === $this->_View->defaultSort['field'] && $dir !== $this->_View->defaultSort['dir']) ||
 				$field !== $this->_View->defaultSort['field']
