@@ -1,12 +1,12 @@
 <?php
 /**
- * Copyright (c) Frank Förster (http://frankfoerster.com)
+ * Copyright (c) Frank Fï¿½rster (http://frankfoerster.com)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Frank Förster (http://frankfoerster.com)
+ * @copyright     Copyright (c) Frank Fï¿½rster (http://frankfoerster.com)
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 namespace FrankFoerster\Filter\Model\Table;
@@ -78,10 +78,10 @@ class FiltersTable extends Table
                 'slug' => $request->params['sluggedFilter']
             ])
             ->where(!$request->params['plugin'] ? ['plugin IS NULL'] : ['plugin' => $request->params['plugin']])
-            ->first()
-            ->toArray();
+            ->first();
 
         if ($encryptedFilterData) {
+            $encryptedFilterData = $encryptedFilterData->toArray();
             return $this->_decodeFilterData($encryptedFilterData['filter_data']);
         }
 
