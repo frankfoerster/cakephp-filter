@@ -15,8 +15,7 @@
   "require": {
     "php": ">=5.4.16",
     "cakephp/cakephp": "~3.0",
-    "cakephp/migrations": "~1.0",
-    "composer/installers": "*"
+    "cakephp/migrations": "~1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "~4.6",
@@ -29,10 +28,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "FrankFoerster\\Filter\\": "tests"
+      "FrankFoerster\\Filter\\Test\\": "tests"
     }
-  },
-  "extra": {
-    "installer-name": "Filter"
   }
 }
