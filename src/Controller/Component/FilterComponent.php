@@ -160,6 +160,17 @@ class FilterComponent extends Component
     protected $_paginationEnabled = false;
 
     /**
+     * Default config
+     *
+     * These are merged with user-provided config when the component is used.
+     *
+     * @var array
+     */
+    protected $_defaultConfig = [
+        'filterTable' => 'FrankFoerster/Filter.Filters'
+    ];
+
+    /**
      * Called before the controller’s beforeFilter method, but after the controller’s initialize() method.
      *
      * @param Event $event
