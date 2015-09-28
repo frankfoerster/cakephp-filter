@@ -346,11 +346,12 @@ class FilterComponent extends Component
      * - Can be later retrieved via FilterHelper::getBacklink($url)
      *
      * @param Event $event
+     * @return bool
      */
     public function beforeRender(Event $event)
     {
         if (!$this->controller || !$this->request || !$this->action) {
-            return;
+            return true;
         }
         $filterOptions = [];
 
@@ -395,13 +396,16 @@ class FilterComponent extends Component
             $this->request->session()->delete($path);
         }
 
-        $view = $this->controller->getView();
-        $view->activeFilters = $this->activeFilters;
-        $view->filterFields = $this->filterFields;
-        $view->activeSort = $this->activeSort;
-        $view->sortFields = $this->sortFields;
-        $view->paginationParams = $this->paginationParams;
-        $view->defaultSort = $this->defaultSort;
+        $this->controller->set('filter', [
+            'activeFilters' => $this->activeFilters,
+            'filterFields' => $this->filterFields,
+            'activeSort' => $this->activeSort,
+            'sortFields' => $this->sortFields,
+            'paginationParams' => $this->paginationParams,
+            'defaultSort' => $this->defaultSort
+        ]);
+
+        return true;
     }
 
     /**
@@ -414,7 +418,7 @@ class FilterComponent extends Component
     public static function getBacklink($url, Request $request)
     {
         $path = join('.', [
-            'FILTER_' . (isset($url['plugin']) ? $url['plugin'] : ''),
+            'FILTER_' . ($url['plugin'] ? $url['plugin'] : ''),
             $url['controller'],
             $url['action']
         ]);
@@ -663,7 +667,13 @@ class FilterComponent extends Component
                     if (isset($filterField['ifValueIs']) && $filterField['ifValueIs'] !== $value) {
                         break;
                     }
-                    $options['conditions'] = Hash::merge($options['conditions'], $filterField['customConditions']);
+                    if (!is_array($filterField['customConditions'])) {
+                        if (is_callable($filterField['customConditions'])) {
+                            $options['conditions'] = Hash::merge($options['conditions'], $filterField['customConditions']($value));
+                        }
+                    } else {
+                        $options['conditions'] = Hash::merge($options['conditions'], $filterField['customConditions']);
+                    }
                     break;
                 case 'having':
                     $options['group'] = 'HAVING ' . $filterField['modelField'] . ' LIKE "%' . $value . '%"';

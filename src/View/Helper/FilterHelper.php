@@ -12,6 +12,7 @@
 namespace FrankFoerster\Filter\View\Helper;
 
 use Cake\Routing\Router;
+use Cake\Utility\Hash;
 use Cake\View\Helper;
 use Cake\View\View;
 use Cake\View\Helper\HtmlHelper;
@@ -28,17 +29,70 @@ class FilterHelper extends Helper
      *
      * @var array
      */
-    public $helpers = array(
+    public $helpers = [
         'Html'
-    );
+    ];
+
+    /**
+     * Holds all active filters and their values.
+     *
+     * @var array
+     */
+    public $activeFilters = [];
+
+    /**
+     * Filter fields registered on the controller.
+     *
+     * @var array
+     */
+    public $filterFields = [];
+
+    /**
+     * Holds the active sort field (key) and its direction (value).
+     *
+     * @var array
+     */
+    public $activeSort = [];
+
+    /**
+     * Sort fields registered on the controller.
+     *
+     * @var array
+     */
+    public $sortFields = [];
+
+    /**
+     * Holds the default sort field (key) and its direction (value).
+     *
+     * @var array
+     */
+    public $defaultSort = [];
+
+    /**
+     * Holds all pagination params.
+     *
+     * @var array
+     */
+    public $paginationParams = [];
+
+    public function __construct(View $View, array $config = [])
+    {
+        $filterOptions = Hash::get($View->viewVars, 'filter', []);
+
+        foreach ($filterOptions as $key => $val) {
+            $this->{$key} = $val;
+        }
+
+        parent::__construct($View, $config);
+    }
 
     public function sortLink($name, $field, $options = [])
     {
         $url = $this->_getSortUrl($field);
 
         $iClass = 'icon-sortable';
-        if (isset($this->_View->activeSort[$field])) {
-            $iClass .= '-' . $this->_View->activeSort[$field];
+        if (isset($this->activeSort[$field])) {
+            $iClass .= '-' . $this->activeSort[$field];
         }
 
         if (isset($options['icon-theme'])) {
@@ -52,13 +106,13 @@ class FilterHelper extends Helper
         return $this->Html->link($name, $url, $options);
     }
 
-    public function pagination($maxPageNumbers = 10, $itemType = 'Items', $element = 'Filter/pagination', $class = '')
+    public function pagination($maxPageNumbers = 10, $itemType = 'Items', $class = '', $element = 'Filter/pagination')
     {
-        if (empty($this->_View->paginationParams)) {
+        if (empty($this->paginationParams)) {
             return '';
         }
-        $page = (integer)$this->_View->paginationParams['page'];
-        $pages = (integer)$this->_View->paginationParams['pages'];
+        $page = (integer)$this->paginationParams['page'];
+        $pages = (integer)$this->paginationParams['pages'];
         $pagesOnLeft = floor($maxPageNumbers / 2) - 1;
         $pagesOnRight = $maxPageNumbers - $pagesOnLeft - 1;
         $minPage = $page - $pagesOnLeft;
@@ -85,19 +139,19 @@ class FilterHelper extends Helper
             $minPage = 1;
         }
         foreach (range($minPage, $maxPage) as $p) {
-            $link = array(
+            $link = [
                 'page' => (int)$p,
                 'url' => $this->_getPaginatedUrl($p),
                 'active' => ((int)$p === $page)
-            );
+            ];
             $pageLinks[] = $link;
         }
         if ($page < $pages) {
             $nextUrl = $this->_getPaginatedUrl($page + 1);
             $lastUrl = $this->_getPaginatedUrl($pages);
         }
-        return $this->_View->element($element, array(
-            'total' => $this->_View->paginationParams['total'],
+        return $this->_View->element($element, [
+            'total' => $this->paginationParams['total'],
             'itemType' => $itemType,
             'first' => $firstUrl,
             'prev' => $prevUrl,
@@ -106,9 +160,9 @@ class FilterHelper extends Helper
             'last' => $lastUrl,
             'class' => $class,
             'baseUrl' => Router::url($this->_getFilterUrl(false)),
-            'from' => $this->_View->paginationParams['from'],
-            'to' => $this->_View->paginationParams['to']
-        ));
+            'from' => $this->paginationParams['from'],
+            'to' => $this->paginationParams['to']
+        ]);
     }
 
     /**
@@ -144,7 +198,7 @@ class FilterHelper extends Helper
     {
         $url = $this->_getFilterUrl();
 
-        if ($field === '' && empty($this->_View->activeSort)) {
+        if ($field === '' && empty($this->activeSort)) {
             return $url;
         }
 
@@ -155,13 +209,13 @@ class FilterHelper extends Helper
         if ($field !== '') {
             $url['?']['s'] = $field;
             $dir = 'asc';
-            if (isset($this->_View->activeSort[$field])) {
-                if ($this->_View->activeSort[$field] === 'asc') {
+            if (isset($this->activeSort[$field])) {
+                if ($this->activeSort[$field] === 'asc') {
                     $url['?']['d'] = 'desc';
                     $dir = 'desc';
                 }
             }
-            if ($field === $this->_View->defaultSort['field'] && $dir === $this->_View->defaultSort['dir']) {
+            if ($field === $this->defaultSort['field'] && $dir === $this->defaultSort['dir']) {
                 unset($url['?']['s']);
                 if (isset($url['?']['d'])) {
                     unset($url['?']['d']);
@@ -171,14 +225,14 @@ class FilterHelper extends Helper
             return $url;
         }
 
-        if (!empty($this->_View->activeSort)) {
-            $field = array_keys($this->_View->activeSort)[0];
-            $dir = $this->_View->activeSort[$field];
-            if (($field === $this->_View->defaultSort['field'] && $dir !== $this->_View->defaultSort['dir']) ||
-                $field !== $this->_View->defaultSort['field']
+        if (!empty($this->activeSort)) {
+            $field = array_keys($this->activeSort)[0];
+            $dir = $this->activeSort[$field];
+            if (($field === $this->defaultSort['field'] && $dir !== $this->defaultSort['dir']) ||
+                $field !== $this->defaultSort['field']
             ) {
                 $url['?']['s'] = $field;
-                if ($this->_View->activeSort[$field] !== 'asc') {
+                if ($this->activeSort[$field] !== 'asc') {
                     $url['?']['d'] = 'desc';
                 }
             }
@@ -193,11 +247,11 @@ class FilterHelper extends Helper
      */
     protected function _getFilterUrl($withLimit = true)
     {
-        $url = array(
+        $url = [
             'plugin' => $this->request->params['plugin'],
             'controller' => $this->request->params['controller'],
             'action' => $this->request->params['action'],
-        );
+        ];
 
         if (isset($this->request->params['sluggedFilter'])) {
             $url['sluggedFilter'] = $this->request->params['sluggedFilter'];
@@ -205,7 +259,7 @@ class FilterHelper extends Helper
 
         if ($withLimit &&
             isset($this->request->data['l']) &&
-            $this->request->data['l'] !== $this->_View->paginationParams['defaultLimit']
+            $this->request->data['l'] !== $this->paginationParams['defaultLimit']
         ) {
             $url['?']['l'] = $this->request->data['l'];
         }
