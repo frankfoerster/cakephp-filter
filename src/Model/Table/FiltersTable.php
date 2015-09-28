@@ -11,7 +11,6 @@
  */
 namespace FrankFoerster\Filter\Model\Table;
 
-use Cake\Core\Exception\Exception;
 use Cake\Network\Request;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
@@ -88,6 +87,13 @@ class FiltersTable extends Table
         return [];
     }
 
+    /**
+     * Create a new filter entry for the given request and filter data.
+     *
+     * @param Request $request
+     * @param array $filterData
+     * @return string The slug for this filter.
+     */
     public function createFilterForFilterData(Request $request, array $filterData)
     {
         $charlist = 'abcdefghikmnopqrstuvwxyz';
