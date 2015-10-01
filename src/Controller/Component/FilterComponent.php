@@ -675,7 +675,7 @@ class FilterComponent extends Component
                     $options['conditions'][] = $filterField['modelField'] . ' IN(' . implode(', ', $val) . ')';
                     break;
                 case 'custom':
-                    if (isset($filterField['ifValueIs']) && $filterField['ifValueIs'] !== $value) {
+                    if (isset($filterField['ifValueIs']) && $filterField['ifValueIs'] !== $value || !isset($filterField['customConditions'])) {
                         break;
                     }
                     if (!is_array($filterField['customConditions'])) {
