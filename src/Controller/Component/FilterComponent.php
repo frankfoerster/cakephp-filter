@@ -259,7 +259,21 @@ class FilterComponent extends Component
                 } else {
                     $slug = $filter->slug;
                 }
-                $this->controller->redirect(['action' => $this->action, 'sluggedFilter' => $slug]);
+                $sort = array_keys($this->activeSort)[0];
+                $useDefaultSort = ($this->defaultSort['field'] === $sort && $this->activeSort[$sort] === $this->defaultSort['dir']);
+                $url = [
+                    'action' => $this->action,
+                    'sluggedFilter' => $slug
+                ];
+                if (!$useDefaultSort) {
+                    $url['?'] = [
+                        's' => $sort
+                    ];
+                    if (!isset($this->sortFields[$sort]['custom'])) {
+                        $url['?']['d'] = $this->activeSort[$sort];
+                    }
+                }
+                $this->controller->redirect($url);
                 return false;
             } else {
                 $this->controller->redirect(['action' => $this->action]);
@@ -623,7 +637,16 @@ class FilterComponent extends Component
     protected function _createSortFieldOption($field, $dir, $options)
     {
         $sortField = $this->sortFields[$field];
-        $options['order'][] = $sortField['modelField'] . ' ' . $dir;
+        if (isset($sortField['custom'])) {
+            if (!is_array($sortField['custom'])) {
+                $sortField['custom'] = [$sortField['custom']];
+            }
+            foreach ($sortField['custom'] as $sortEntry) {
+                $options['order'][] = $sortEntry;
+            }
+        } else {
+            $options['order'][] = $sortField['modelField'] . ' ' . $dir;
+        }
 
         return $options;
     }
