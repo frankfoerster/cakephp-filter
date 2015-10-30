@@ -276,7 +276,14 @@ class FilterComponent extends Component
                 $this->controller->redirect($url);
                 return false;
             } else {
-                $this->controller->redirect(['action' => $this->action]);
+                $url = ['action' => $this->action];
+                if (isset($this->request->query['s'])) {
+                    $url['s'] = $this->request->query['s'];
+                }
+                if (isset($this->request->query['d'])) {
+                    $url['d'] = $this->request->query['d'];
+                }
+                $this->controller->redirect($url);
                 return false;
             }
         }
