@@ -328,8 +328,8 @@ class FilterComponent extends Component
             ]));
             if ($lastLimit) {
                 $limit = $lastLimit;
-                $this->activeLimit = $limit;
             }
+            $this->activeLimit = $limit;
         }
         $this->request->data['l'] = $limit;
 
