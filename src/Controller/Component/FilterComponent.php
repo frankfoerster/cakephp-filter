@@ -13,6 +13,7 @@ namespace FrankFoerster\Filter\Controller\Component;
 
 use Cake\Controller\Component;
 use Cake\Controller\Controller;
+use Cake\Core\Configure;
 use Cake\Event\Event;
 use Cake\Network\Request;
 use Cake\Network\Session;
@@ -402,9 +403,15 @@ class FilterComponent extends Component
             }
         }
 
+        $rememberPage = Configure::read('Filter.rememberPage');
+        if ($rememberPage === null) {
+            $rememberPage = true;
+        }
+
         if (!empty($this->paginationParams) &&
             isset($this->paginationParams['page']) &&
-            $this->paginationParams['page'] != 1
+            $this->paginationParams['page'] != 1 &&
+            $rememberPage
         ) {
             $filterOptions['p'] = $this->paginationParams['page'];
         }
