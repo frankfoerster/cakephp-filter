@@ -656,7 +656,7 @@ class FilterComponent extends Component
                 $sortField['custom'] = [$sortField['custom']];
             }
             foreach ($sortField['custom'] as $sortEntry) {
-                $options['order'][] = $sortEntry;
+                $options['order'][] = preg_replace('/:dir/', $dir, $sortEntry);
             }
         } else {
             $options['order'][] = $sortField['modelField'] . ' ' . $dir;
