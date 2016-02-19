@@ -456,6 +456,13 @@ class FilterComponent extends Component
      */
     public static function getBacklink($url, Request $request)
     {
+        if (!isset($url['plugin'])) {
+            $url['plugin'] = $request->params['plugin'];
+        }
+        if (!isset($url['controller'])) {
+            $url['controller'] = $request->params['controller'];
+        }
+
         $path = join('.', [
             'FILTER_' . ($url['plugin'] ? $url['plugin'] : ''),
             $url['controller'],
