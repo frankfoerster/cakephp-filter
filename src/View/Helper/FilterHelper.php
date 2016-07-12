@@ -19,6 +19,8 @@ use Cake\View\Helper\HtmlHelper;
 use FrankFoerster\Filter\Controller\Component\FilterComponent;
 
 /**
+ * FilterHelper
+ *
  * @property View $_View
  * @property HtmlHelper $Html
  */
@@ -75,6 +77,19 @@ class FilterHelper extends Helper
      */
     public $paginationParams = [];
 
+    /**
+     * Holds additional params that should be passed to the filter url.
+     *
+     * @var array
+     */
+    protected $_passParams = [];
+
+    /**
+     * Constructor
+     *
+     * @param View $View The view initializing the Filter helper instance.
+     * @param array $config Configuration options passed to the constructor.
+     */
     public function __construct(View $View, array $config = [])
     {
         $filterOptions = Hash::get($View->viewVars, 'filter', []);
@@ -106,11 +121,24 @@ class FilterHelper extends Helper
         return $this->Html->link($name, $url, $options);
     }
 
-    public function pagination($maxPageNumbers = 10, $itemType = 'Items', $class = '', $element = 'Filter/pagination')
+    /**
+     * Render the pagination.
+     *
+     * @param int $maxPageNumbers The maximum number of pages to show in the link list.
+     * @param string $itemType The item type that is paginated.
+     * @param string $class An optional css class for the pagination.
+     * @param string $element The pagination element to render.
+     * @param array $passParams Optional params passed to the filter urls.
+     * @return string
+     */
+    public function pagination($maxPageNumbers = 10, $itemType = 'Items', $class = '', $element = 'Filter/pagination', $passParams = [])
     {
         if (empty($this->paginationParams)) {
             return '';
         }
+
+        $this->_passParams = $passParams;
+
         $page = (integer)$this->paginationParams['page'];
         $pages = (integer)$this->paginationParams['pages'];
         $pagesOnLeft = floor($maxPageNumbers / 2) - 1;
@@ -176,6 +204,12 @@ class FilterHelper extends Helper
         return FilterComponent::getBacklink($url, $this->request);
     }
 
+    /**
+     * Get a paginated url for the given $page number.
+     *
+     * @param int $page
+     * @return array
+     */
     protected function _getPaginatedUrl($page)
     {
         $url = $this->_getSortUrl();
@@ -191,7 +225,9 @@ class FilterHelper extends Helper
     }
 
     /**
-     * @param string $field
+     * Get a sort url for the given $field.
+     *
+     * @param string $field The field to sort.
      * @return array
      */
     protected function _getSortUrl($field = '')
@@ -242,6 +278,8 @@ class FilterHelper extends Helper
     }
 
     /**
+     * Get the filter url.
+     *
      * @param boolean $withLimit
      * @return array
      */
@@ -252,6 +290,10 @@ class FilterHelper extends Helper
             'controller' => $this->request->params['controller'],
             'action' => $this->request->params['action'],
         ];
+
+        foreach($this->_passParams as $name => $value) {
+            $url[$name] = $value;
+        }
 
         if (isset($this->request->params['sluggedFilter'])) {
             $url['sluggedFilter'] = $this->request->params['sluggedFilter'];
