@@ -260,18 +260,20 @@ class FilterComponent extends Component
                 } else {
                     $slug = $filter->slug;
                 }
-                $sort = array_keys($this->activeSort)[0];
-                $useDefaultSort = ($this->defaultSort['field'] === $sort && $this->activeSort[$sort] === $this->defaultSort['dir']);
                 $url = [
                     'action' => $this->action,
                     'sluggedFilter' => $slug
                 ];
-                if (!$useDefaultSort) {
-                    $url['?'] = [
-                        's' => $sort
-                    ];
-                    if (!isset($this->sortFields[$sort]['custom'])) {
-                        $url['?']['d'] = $this->activeSort[$sort];
+                if ($this->_sortEnabled) {
+                    $sort = array_keys($this->activeSort)[0];
+                    $useDefaultSort = ($this->defaultSort['field'] === $sort && $this->activeSort[$sort] === $this->defaultSort['dir']);
+                    if (!$useDefaultSort) {
+                        $url['?'] = [
+                            's' => $sort
+                        ];
+                        if (!isset($this->sortFields[$sort]['custom'])) {
+                            $url['?']['d'] = $this->activeSort[$sort];
+                        }
                     }
                 }
                 $this->controller->redirect($url);
@@ -494,9 +496,7 @@ class FilterComponent extends Component
      */
     protected function _initFilterOptions()
     {
-        if ((empty($this->request->query) && empty($this->defaultSort)) ||
-            (empty($this->filterFields) && empty($this->sortFields))
-        ) {
+        if (!$this->_filterEnabled && !$this->_sortEnabled) {
             return;
         }
 
