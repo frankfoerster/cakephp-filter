@@ -187,9 +187,11 @@ class FilterHelper extends Helper
             'next' => $nextUrl,
             'last' => $lastUrl,
             'class' => $class,
+            'currentPage' => $page,
             'baseUrl' => Router::url($this->_getFilterUrl(false)),
             'from' => $this->paginationParams['from'],
-            'to' => $this->paginationParams['to']
+            'to' => $this->paginationParams['to'],
+            'nrOfPages' => $pages
         ]);
     }
 
