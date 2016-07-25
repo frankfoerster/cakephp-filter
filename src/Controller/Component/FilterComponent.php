@@ -262,15 +262,17 @@ class FilterComponent extends Component
                 }
                 $url = [
                     'action' => $this->action,
-                    'sluggedFilter' => $slug
+                    'sluggedFilter' => $slug,
+                    '?' => []
                 ];
+                if (!empty($this->request->query)) {
+                    $url['?'] = $this->request->query;
+                }
                 if ($this->_sortEnabled) {
                     $sort = array_keys($this->activeSort)[0];
                     $useDefaultSort = ($this->defaultSort['field'] === $sort && $this->activeSort[$sort] === $this->defaultSort['dir']);
                     if (!$useDefaultSort) {
-                        $url['?'] = [
-                            's' => $sort
-                        ];
+                        $url['?']['s'] = $sort;
                         if (!isset($this->sortFields[$sort]['custom'])) {
                             $url['?']['d'] = $this->activeSort[$sort];
                         }
@@ -281,10 +283,10 @@ class FilterComponent extends Component
             } else {
                 $url = ['action' => $this->action];
                 if (isset($this->request->query['s'])) {
-                    $url['s'] = $this->request->query['s'];
+                    $url['?']['s'] = $this->request->query['s'];
                 }
                 if (isset($this->request->query['d'])) {
-                    $url['d'] = $this->request->query['d'];
+                    $url['?']['d'] = $this->request->query['d'];
                 }
                 $this->controller->redirect($url);
                 return false;
