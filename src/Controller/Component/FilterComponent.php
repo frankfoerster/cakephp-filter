@@ -692,11 +692,14 @@ class FilterComponent extends Component
                     if (!is_array($filterField['modelField'])) {
                         $filterField['modelField'] = [$filterField['modelField']];
                     }
-                    $orConditions = [];
+                    $conditions = [];
                     foreach ($filterField['modelField'] as $modelField) {
-                        $orConditions[] = $modelField . ' LIKE "%' . $value . '%"';
+                        $conditions[] = $modelField . ' LIKE "%' . $value . '%"';
                     }
-                    $options['conditions']['OR'] = $orConditions;
+                    if (count($conditions) > 1) {
+                        $conditions = ['OR' => $conditions];
+                    }
+                    $options['conditions'][] = $conditions;
                     break;
                 case '=':
                     $options['conditions'][] = $filterField['modelField'] . ' = "' . $value . '"';
