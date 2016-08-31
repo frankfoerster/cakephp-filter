@@ -13,6 +13,7 @@ namespace FrankFoerster\Filter\Controller\Component;
 
 use Cake\Controller\Component;
 use Cake\Controller\Controller;
+use Cake\Core\Configure;
 use Cake\Event\Event;
 use Cake\Network\Request;
 use Cake\Network\Session;
@@ -160,6 +161,17 @@ class FilterComponent extends Component
     protected $_paginationEnabled = false;
 
     /**
+     * Default config
+     *
+     * These are merged with user-provided config when the component is used.
+     *
+     * @var array
+     */
+    protected $_defaultConfig = [
+        'filterTable' => 'FrankFoerster/Filter.Filters'
+    ];
+
+    /**
      * Called before the controller’s beforeFilter method, but after the controller’s initialize() method.
      *
      * @param Event $event
@@ -248,10 +260,35 @@ class FilterComponent extends Component
                 } else {
                     $slug = $filter->slug;
                 }
-                $this->controller->redirect(['action' => $this->action, 'sluggedFilter' => $slug]);
+                $url = [
+                    'action' => $this->action,
+                    'sluggedFilter' => $slug,
+                    '?' => []
+                ];
+                if (!empty($this->request->query)) {
+                    $url['?'] = $this->request->query;
+                }
+                if ($this->_sortEnabled) {
+                    $sort = array_keys($this->activeSort)[0];
+                    $useDefaultSort = ($this->defaultSort['field'] === $sort && $this->activeSort[$sort] === $this->defaultSort['dir']);
+                    if (!$useDefaultSort) {
+                        $url['?']['s'] = $sort;
+                        if (!isset($this->sortFields[$sort]['custom'])) {
+                            $url['?']['d'] = $this->activeSort[$sort];
+                        }
+                    }
+                }
+                $this->controller->redirect($url);
                 return false;
             } else {
-                $this->controller->redirect(['action' => $this->action]);
+                $url = ['action' => $this->action];
+                if (isset($this->request->query['s'])) {
+                    $url['?']['s'] = $this->request->query['s'];
+                }
+                if (isset($this->request->query['d'])) {
+                    $url['?']['d'] = $this->request->query['d'];
+                }
+                $this->controller->redirect($url);
                 return false;
             }
         }
@@ -296,8 +333,8 @@ class FilterComponent extends Component
             ]));
             if ($lastLimit) {
                 $limit = $lastLimit;
-                $this->activeLimit = $limit;
             }
+            $this->activeLimit = $limit;
         }
         $this->request->data['l'] = $limit;
 
@@ -370,9 +407,15 @@ class FilterComponent extends Component
             }
         }
 
+        $rememberPage = Configure::read('Filter.rememberPage');
+        if ($rememberPage === null) {
+            $rememberPage = true;
+        }
+
         if (!empty($this->paginationParams) &&
             isset($this->paginationParams['page']) &&
-            $this->paginationParams['page'] != 1
+            $this->paginationParams['page'] != 1 &&
+            $rememberPage
         ) {
             $filterOptions['p'] = $this->paginationParams['page'];
         }
@@ -417,6 +460,13 @@ class FilterComponent extends Component
      */
     public static function getBacklink($url, Request $request)
     {
+        if (!isset($url['plugin'])) {
+            $url['plugin'] = $request->params['plugin'];
+        }
+        if (!isset($url['controller'])) {
+            $url['controller'] = $request->params['controller'];
+        }
+
         $path = join('.', [
             'FILTER_' . ($url['plugin'] ? $url['plugin'] : ''),
             $url['controller'],
@@ -448,9 +498,7 @@ class FilterComponent extends Component
      */
     protected function _initFilterOptions()
     {
-        if ((empty($this->request->query) && empty($this->defaultSort)) ||
-            (empty($this->filterFields) && empty($this->sortFields))
-        ) {
+        if (!$this->_filterEnabled && !$this->_sortEnabled) {
             return;
         }
 
@@ -612,7 +660,16 @@ class FilterComponent extends Component
     protected function _createSortFieldOption($field, $dir, $options)
     {
         $sortField = $this->sortFields[$field];
-        $options['order'][] = $sortField['modelField'] . ' ' . $dir;
+        if (isset($sortField['custom'])) {
+            if (!is_array($sortField['custom'])) {
+                $sortField['custom'] = [$sortField['custom']];
+            }
+            foreach ($sortField['custom'] as $sortEntry) {
+                $options['order'][] = preg_replace('/:dir/', $dir, $sortEntry);
+            }
+        } else {
+            $options['order'][] = $sortField['modelField'] . ' ' . $dir;
+        }
 
         return $options;
     }
@@ -667,7 +724,7 @@ class FilterComponent extends Component
                     $options['conditions'][] = $filterField['modelField'] . ' IN(' . implode(', ', $val) . ')';
                     break;
                 case 'custom':
-                    if (isset($filterField['ifValueIs']) && $filterField['ifValueIs'] !== $value) {
+                    if (isset($filterField['ifValueIs']) && $filterField['ifValueIs'] !== $value || !isset($filterField['customConditions'])) {
                         break;
                     }
                     if (!is_array($filterField['customConditions'])) {

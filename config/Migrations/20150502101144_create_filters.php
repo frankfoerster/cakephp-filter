@@ -15,7 +15,7 @@ class CreateFilters extends AbstractMigration
             ->addColumn('action', 'string', ['limit' => 255, 'null' => false])
             ->addColumn('slug', 'string', ['limit' => 14, 'null' => false])
             ->addColumn('filter_data', 'text', ['null' => false])
-            ->addColumn('created', 'datetime', ['null' => false, 'default' => '0000-00-00 00:00']);
+            ->addColumn('created', 'datetime', ['null' => false, 'default' => 'CURRENT_TIMESTAMP']);
         $table->addIndex('slug', ['name' => 'BY_SLUG', 'unique' => true]);
         $table->create();
 

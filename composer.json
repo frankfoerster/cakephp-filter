@@ -14,11 +14,11 @@
   ],
   "require": {
     "php": ">=5.4.16",
-    "cakephp/cakephp": "~3.0",
-    "cakephp/migrations": "~1.0"
+    "cakephp/cakephp": "3.*",
+    "cakephp/migrations": "1.5.*"
   },
   "require-dev": {
-    "phpunit/phpunit": "~4.6",
+    "phpunit/phpunit": "5.*",
     "cakephp/cakephp-codesniffer": "dev-master"
   },
   "autoload": {
