@@ -137,7 +137,7 @@ class FilterHelper extends Helper
             return '';
         }
 
-        $this->_passParams = $passParams;
+        $this->_passParams = array_merge($this->paginationParams['passParams'], $passParams);
 
         $page = (integer)$this->paginationParams['page'];
         $pages = (integer)$this->paginationParams['pages'];
