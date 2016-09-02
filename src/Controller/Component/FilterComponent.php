@@ -160,6 +160,13 @@ class FilterComponent extends Component
      */
     protected $_paginationEnabled = false;
 
+
+    /**
+     * Passed Params should be declared in Controller::$filterPassParams[$action]
+     * @var array
+     */
+    protected $_passParams = [];
+
     /**
      * Default config
      *
@@ -236,6 +243,8 @@ class FilterComponent extends Component
         }
         $this->_initFilterOptions();
 
+        $this->_extractPassParams();
+
         if ($this->request->is('post') &&
             isset($this->controller->filterActions) &&
             is_array($this->controller->filterActions) &&
@@ -265,6 +274,9 @@ class FilterComponent extends Component
                     'sluggedFilter' => $slug,
                     '?' => []
                 ];
+                if (!empty($this->_passParams)) {
+                    $url = array_merge($url, $this->_passParams);
+                }
                 if (!empty($this->request->query)) {
                     $url['?'] = $this->request->query;
                 }
@@ -367,8 +379,13 @@ class FilterComponent extends Component
                 'to' => $to,
                 'total' => $total,
                 'defaultLimit' => $this->defaultLimit,
-                'limits' => array_combine($this->limits, $this->limits)
+                'limits' => array_combine($this->limits, $this->limits),
+                'passParams' => []
             ];
+
+            if (!empty($this->_passParams)) {
+                $this->paginationParams['passParams'] = $this->_passParams;
+            }
         }
 
         return $query;
@@ -445,7 +462,8 @@ class FilterComponent extends Component
             'activeSort' => $this->activeSort,
             'sortFields' => $this->sortFields,
             'paginationParams' => $this->paginationParams,
-            'defaultSort' => $this->defaultSort
+            'defaultSort' => $this->defaultSort,
+            'passParams' => $this->_passParams
         ]);
 
         return true;
@@ -745,5 +763,19 @@ class FilterComponent extends Component
         }
 
         return $options;
+    }
+
+    /**
+     * Puts the values in the passParams array
+     */
+    protected function _extractPassParams()
+    {
+        if (!empty($this->controller->filterPassParams[$this->action])) {
+            foreach ($this->controller->filterPassParams[$this->action] as $key) {
+                if (!empty($this->request->params[$key])) {
+                    $this->_passParams[$key] = $this->request->params[$key];
+                }
+            }
+        }
     }
 }
