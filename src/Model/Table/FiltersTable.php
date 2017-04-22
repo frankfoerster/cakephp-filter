@@ -11,7 +11,7 @@
  */
 namespace FrankFoerster\Filter\Model\Table;
 
-use Cake\Network\Request;
+use Cake\Http\ServerRequest;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
 use FrankFoerster\Filter\Model\Entity\Filter;
@@ -25,7 +25,7 @@ class FiltersTable extends Table
      */
     public function initialize(array $config)
     {
-        $this->table('ff_filters');
+        $this->setTable('frank_foerster_filter_filters');
         $this->addBehavior('Timestamp');
     }
 
@@ -34,26 +34,30 @@ class FiltersTable extends Table
      *
      * @param Query $query
      * @param array $options
-     * @return $this
+     * @return Query
      */
     public function findSlugForFilterData(Query $query, array $options)
     {
-        if (!isset($options['request']) || get_class($options['request']) !== Request::class) {
-            user_error('The request query option must exist and must be of type Cake\Network\Request.');
+        if (!isset($options['request']) || get_class($options['request']) !== ServerRequest::class) {
+            user_error('The request query option must exist and must be of type Cake\Http\ServerRequest.');
         }
+
         if (!isset($options['filterData'])) {
             user_error('No filterData option provided.');
         }
+
+        /** @var ServerRequest $request */
         $request = $options['request'];
         $filterData = $options['filterData'];
+
         return $query
-            ->select($this->alias() . '.slug')
+            ->select($this->getAlias() . '.slug')
             ->where([
-                'controller' => $request->params['controller'],
-                'action' => $request->params['action'],
-                'filter_data' => $this->_encodeFilterData($filterData)
+                $this->getAlias() . '.controller' => $request->getParam('controller'),
+                $this->getAlias() . '.action' => $request->getParam('action'),
+                $this->getAlias() . '.filter_data' => $this->_encodeFilterData($filterData)
             ])
-            ->where(!$request->params['plugin'] ? ['plugin IS NULL'] : ['plugin' => $request->params['plugin']]);
+            ->where($this->_pluginCondition($request));
     }
 
     /**
@@ -65,19 +69,11 @@ class FiltersTable extends Table
      */
     public function findFilterDataBySlug(Query $query, array $options)
     {
-        if (!isset($options['request']) || get_class($options['request']) !== Request::class) {
-            user_error('The request query option must exist and must be of type Cake\Network\Request.');
+        if (!isset($options['request']) || get_class($options['request']) !== ServerRequest::class) {
+            user_error('The request query option must exist and must be of type Cake\Http\ServerRequest.');
         }
-        $request = $options['request'];
-        $encryptedFilterData = $query
-            ->select($this->alias() . '.filter_data')
-            ->where([
-                'controller' => $request->params['controller'],
-                'action' => $request->params['action'],
-                'slug' => $request->params['sluggedFilter']
-            ])
-            ->where(!$request->params['plugin'] ? ['plugin IS NULL'] : ['plugin' => $request->params['plugin']])
-            ->first();
+
+        $encryptedFilterData = $this->_findEncryptedFilterData($query, $options['request'])->first();
 
         if ($encryptedFilterData) {
             $encryptedFilterData = $encryptedFilterData->toArray();
@@ -90,11 +86,11 @@ class FiltersTable extends Table
     /**
      * Create a new filter entry for the given request and filter data.
      *
-     * @param Request $request
+     * @param ServerRequest $request
      * @param array $filterData
-     * @return string The slug for this filter.
+     * @return string The slug representing the given $filterData.
      */
-    public function createFilterForFilterData(Request $request, array $filterData)
+    public function createFilterForFilterData(ServerRequest $request, array $filterData)
     {
         $charlist = 'abcdefghikmnopqrstuvwxyz';
 
@@ -103,20 +99,12 @@ class FiltersTable extends Table
             for ($i = 0; $i < 14; $i++) {
                 $slug .= substr($charlist, rand(0, 31), 1);
             }
-        } while (null !== $this
-                ->find('all')
-                ->select('slug')
-                ->where([
-                    'slug' => $slug,
-                    'controller' => $request->params['controller'],
-                    'action' => $request->params['action']
-                ])
-                ->where(!$request->params['plugin'] ? ['plugin IS NULL'] : ['plugin' => $request->params['plugin']])->hydrate(false)->first());
+        } while ($this->_slugExists($slug, $request));
 
         $this->save(new Filter([
-            'plugin' => $request->params['plugin'],
-            'controller' => $request->params['controller'],
-            'action' => $request->params['action'],
+            'plugin' => $request->getParam('plugin'),
+            'controller' => $request->getParam('controller'),
+            'action' => $request->getParam('action'),
             'slug' => $slug,
             'filter_data' => $this->_encodeFilterData($filterData)
         ]));
@@ -144,5 +132,62 @@ class FiltersTable extends Table
     protected function _decodeFilterData($encodedFilterData)
     {
         return json_decode($encodedFilterData, true);
+    }
+
+    /**
+     * Get the plugin query condition for a given request.
+     *
+     * @param ServerRequest $request
+     * @return array
+     */
+    protected function _pluginCondition(ServerRequest $request)
+    {
+        if ($request->getParam('plugin') !== null) {
+            return [$this->getAlias() . '.plugin' => $request->getParam('plugin')];
+        }
+
+        return [$this->getAlias() . '.plugin IS NULL'];
+    }
+
+    /**
+     * Check if a slug for the given request params already exists.
+     *
+     * @param string $slug
+     * @param ServerRequest $request
+     * @return bool
+     */
+    protected function _slugExists($slug, ServerRequest $request)
+    {
+        $existingSlug = $this->find('all')
+            ->select($this->getAlias() . '.slug')
+            ->where([
+                $this->getAlias() . '.slug' => $slug,
+                $this->getAlias() . '.controller' => $request->getParam('controller'),
+                $this->getAlias() . '.action' => $request->getParam('action')
+            ])
+            ->where($this->_pluginCondition($request))
+            ->enableHydration(false)
+            ->first();
+
+        return $existingSlug !== null;
+    }
+
+    /**
+     * Find encrypted filter data for the given request and the provided sluggedFilter.
+     *
+     * @param Query $query
+     * @param ServerRequest $request
+     * @return Query
+     */
+    protected function _findEncryptedFilterData(Query $query, ServerRequest $request)
+    {
+        return $query
+            ->select($this->getAlias() . '.filter_data')
+            ->where([
+                $this->getAlias() . '.controller' => $request->getParam('controller'),
+                $this->getAlias() . '.action' => $request->getParam('action'),
+                $this->getAlias() . '.slug' => $request->getParam('sluggedFilter')
+            ])
+            ->where($this->_pluginCondition($request));
     }
 }

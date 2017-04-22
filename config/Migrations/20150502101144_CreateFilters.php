@@ -1,11 +1,14 @@
 <?php
+use Cake\Cache\Cache;
 use Phinx\Db\Table\Column;
 use Phinx\Migration\AbstractMigration;
 
 class CreateFilters extends AbstractMigration
 {
     /**
-     * Migrate up
+     * Migrate up.
+     *
+     * @return void
      */
     public function up()
     {
@@ -25,12 +28,18 @@ class CreateFilters extends AbstractMigration
             ->setOptions(['limit' => 11, 'signed' => false, 'null' => false]);
 
         $table->changeColumn('id', $id)->save();
+
+        Cache::clear();
     }
 
     /**
      * Migrate down
+     *
+     * @return void
      */
     public function down() {
         $this->table('ff_filters')->drop();
+
+        Cache::clear();
     }
 }

@@ -16,10 +16,10 @@ use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\Event;
 use Cake\Network\Request;
-use Cake\Network\Session;
 use Cake\ORM\Query;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
+use FrankFoerster\Filter\Model\Entity\Filter;
 use FrankFoerster\Filter\Model\Table\FiltersTable;
 
 /**
@@ -140,6 +140,13 @@ class FilterComponent extends Component
     public $limits = [];
 
     /**
+     * Holds the FiltersTable instance.
+     *
+     * @var FiltersTable
+     */
+    public $Filters;
+
+    /**
      * Tells if sort is enabled after initialization.
      *
      * @var boolean
@@ -163,6 +170,8 @@ class FilterComponent extends Component
 
     /**
      * Passed Params should be declared in Controller::$filterPassParams[$action]
+     * and are automatically passed through to the resulting filter url.
+     *
      * @var array
      */
     protected $_passParams = [];
@@ -170,7 +179,7 @@ class FilterComponent extends Component
     /**
      * Default config
      *
-     * These are merged with user-provided config when the component is used.
+     * These are merged with user-provided config when the component is instantiated.
      *
      * @var array
      */
@@ -185,49 +194,14 @@ class FilterComponent extends Component
      */
     public function beforeFilter(Event $event)
     {
-        $this->controller = $event->subject();
+        $this->controller = $event->getSubject();
         $this->request = $this->controller->request;
-        $this->action = $this->request->params['action'];
-        $this->_sortEnabled = $this->_isSortEnabled();
-        $this->_filterEnabled = $this->_isFilterEnabled();
-        $this->_paginationEnabled = $this->_isPaginationEnabled();
+        $this->action = $this->request->getParam('action');
+        $this->Filters = TableRegistry::get($this->getConfig('filterTable'));
 
-        if ($this->_sortEnabled) {
-            $this->sortFields = $this->_getSortFields();
-
-            foreach ($this->sortFields as $field => $options) {
-                if (!isset($options['default'])) {
-                    continue;
-                }
-                $dir = strtolower($options['default']);
-                if (in_array($dir, ['asc', 'desc'])) {
-                    $this->defaultSort = [
-                        'field' => $field,
-                        'dir' => $dir
-                    ];
-                }
-            }
-        }
-
-        if ($this->_filterEnabled) {
-
-            if (isset($this->request->params['sluggedFilter']) && $this->request->params['sluggedFilter'] !== '') {
-                /** @var \FrankFoerster\Filter\Model\Table\FiltersTable $FiltersTable */
-                $FiltersTable = TableRegistry::get($this->config('filterTable'));
-                $filterData = $FiltersTable->find('filterDataBySlug', ['request' => $this->request]);
-                if (!empty($filterData)) {
-                    $this->request->data = array_merge($this->request->data, $filterData);
-                    $this->slug = $this->request->params['sluggedFilter'];
-                }
-            }
-
-            $this->filterFields = $this->_getFilterFields();
-        }
-
-        if ($this->_paginationEnabled) {
-            $this->defaultLimit = $this->controller->limits[$this->action]['default'];
-            $this->limits = $this->controller->limits[$this->action]['limits'];
-        }
+        $this->_setupSort();
+        $this->_setupFilters();
+        $this->_setupPagination();
     }
 
     /**
@@ -238,76 +212,34 @@ class FilterComponent extends Component
      */
     public function startup(Event $event)
     {
-        if (!$this->controller || !$this->request || !$this->action) {
+        if (!$this->_isFilterRequest()) {
             return true;
         }
+
         $this->_initFilterOptions();
 
-        $this->_extractPassParams();
+        if ($this->request->is('post')) {
+            $this->_extractPassParams();
 
-        if ($this->request->is('post') &&
-            isset($this->controller->filterActions) &&
-            is_array($this->controller->filterActions) &&
-            in_array($this->action, $this->controller->filterActions)
-        ) {
-            $rawFilterData = $this->request->data;
-            $filterData = [];
-            foreach ($this->filterFields as $filterField => $options) {
-                if (isset($rawFilterData[$filterField]) && $rawFilterData[$filterField] !== '') {
-                    $filterData[$filterField] = $rawFilterData[$filterField];
-                }
-            }
-            if (!empty($filterData)) {
-                /** @var FiltersTable $FiltersTable */
-                $FiltersTable = TableRegistry::get($this->config('filterTable'));
-                $filter = $FiltersTable->find('slugForFilterData', [
-                    'request' => $this->request,
-                    'filterData' => $filterData
-                ])->first();
-                if (!$filter) {
-                    $slug = $FiltersTable->createFilterForFilterData($this->request, $filterData);
-                } else {
-                    $slug = $filter->slug;
-                }
-                $url = [
-                    'action' => $this->action,
-                    'sluggedFilter' => $slug,
-                    '?' => []
-                ];
-                if (!empty($this->_passParams)) {
-                    $url = array_merge($url, $this->_passParams);
-                }
-                if (!empty($this->request->query)) {
-                    $url['?'] = $this->request->query;
-                }
-                if ($this->_sortEnabled) {
-                    $sort = array_keys($this->activeSort)[0];
-                    $useDefaultSort = ($this->defaultSort['field'] === $sort && $this->activeSort[$sort] === $this->defaultSort['dir']);
-                    if (!$useDefaultSort) {
-                        $url['?']['s'] = $sort;
-                        if (!isset($this->sortFields[$sort]['custom'])) {
-                            $url['?']['d'] = $this->activeSort[$sort];
-                        }
-                    }
-                }
-                $this->controller->redirect($url);
-                return false;
-            } else {
-                $url = ['action' => $this->action];
-                if (isset($this->request->query['s'])) {
-                    $url['?']['s'] = $this->request->query['s'];
-                }
-                if (isset($this->request->query['d'])) {
-                    $url['?']['d'] = $this->request->query['d'];
-                }
-                $this->controller->redirect($url);
-                return false;
-            }
+            $url = ['action' => $this->action];
+
+            $url = $this->_applyFilterData($url);
+            $url = $this->_applyPassedParams($url);
+            $url = $this->_applySort($url);
+
+            $this->controller->redirect($url);
+            return false;
         }
 
         return true;
     }
 
+    /**
+     * Apply filter conditions and order options to the given query.
+     *
+     * @param Query $query
+     * @return Query
+     */
     public function filter(Query $query)
     {
         if (!empty($this->filterOptions['conditions'])) {
@@ -777,5 +709,189 @@ class FilterComponent extends Component
                 }
             }
         }
+    }
+
+    /**
+     * Get the filter data.
+     *
+     * @return array
+     */
+    protected function _getFilterData()
+    {
+        $rawFilterData = $this->request->getData();
+        $filterData = [];
+        foreach ($this->filterFields as $filterField => $options) {
+            if (isset($rawFilterData[$filterField]) && $rawFilterData[$filterField] !== '') {
+                $filterData[$filterField] = $rawFilterData[$filterField];
+            }
+        }
+
+        return $filterData;
+    }
+
+    /**
+     * Setup default sort options.
+     *
+     * @return void
+     */
+    protected function _setupSort()
+    {
+        if (!($this->_sortEnabled = $this->_isSortEnabled())) {
+            return;
+        }
+
+        $this->sortFields = $this->_getSortFields();
+
+        foreach ($this->sortFields as $field => $options) {
+            if (!isset($options['default'])) {
+                continue;
+            }
+            $dir = strtolower($options['default']);
+            if (in_array($dir, ['asc', 'desc'])) {
+                $this->defaultSort = [
+                    'field' => $field,
+                    'dir' => $dir
+                ];
+            }
+        }
+    }
+
+    /**
+     * Setup the filter field options.
+     *
+     * If the current request is provided with the sluggedFilter param,
+     * then the corresponding filter data will be fetched and set on the request data.
+     *
+     * @return void
+     */
+    protected function _setupFilters()
+    {
+        if (!($this->_filterEnabled = $this->_isFilterEnabled())) {
+            return;
+        }
+
+        $this->filterFields = $this->_getFilterFields();
+        $sluggedFilter = $this->request->getParam('sluggedFilter', '');
+
+        if ($sluggedFilter === '') {
+            return;
+        }
+
+        $filterData = $this->Filters->find('filterDataBySlug', ['request' => $this->request]);
+
+        if (empty($filterData)) {
+            return;
+        }
+
+        $this->request->data = array_merge($this->request->getData(), $filterData);
+        $this->slug = $sluggedFilter;
+    }
+
+    /**
+     * Setup the default pagination params.
+     *
+     * @return void
+     */
+    protected function _setupPagination()
+    {
+        if (!($this->_paginationEnabled = $this->_isPaginationEnabled())) {
+            return;
+        }
+
+        $this->defaultLimit = $this->controller->limits[$this->action]['default'];
+        $this->limits = $this->controller->limits[$this->action]['limits'];
+    }
+
+    /**
+     * Check if the current request is a filter request.
+     *
+     * @return bool
+     */
+    protected function _isFilterRequest()
+    {
+        return (
+            $this->controller !== null  &&
+            $this->request !== null &&
+            $this->action !== null &&
+            $this->_filterEnabled
+        );
+    }
+
+    /**
+     * Create a filter slug for the given filter data.
+     *
+     * @param array $filterData
+     * @return string The slug.
+     */
+    protected function _createFilterSlug(array $filterData)
+    {
+        /** @var Filter $existingFilter */
+        $existingFilter = $this->Filters->find('slugForFilterData', [
+            'request' => $this->request,
+            'filterData' => $filterData
+        ])->first();
+
+        if ($existingFilter) {
+            return $existingFilter->slug;
+        }
+
+        return $this->Filters->createFilterForFilterData($this->request, $filterData);
+    }
+
+    /**
+     * Apply filter data to the given url.
+     *
+     * @param $url
+     * @return array modified url array
+     */
+    protected function _applyFilterData($url)
+    {
+        $filterData = $this->_getFilterData();
+        if (empty($filterData)) {
+            return $url;
+        }
+
+        return $url + [
+            'sluggedFilter' => $this->_createFilterSlug($filterData),
+            '?' => $this->request->getQuery()
+        ];
+    }
+
+    /**
+     * Apply configured pass params to the url array.
+     *
+     * @param array $url
+     * @return array modified url array
+     */
+    protected function _applyPassedParams($url)
+    {
+        if (empty($this->_passParams)) {
+            return $url;
+        }
+
+        return array_merge($url, $this->_passParams);
+    }
+
+    /**
+     * Pass sort options through to the filtered url.
+     *
+     * @param array $url
+     * @return array modified url array
+     */
+    protected function _applySort($url)
+    {
+        if (!$this->_sortEnabled) {
+            return $url;
+        }
+
+        if (isset($this->request->query['s'])) {
+            $url['?']['s'] = $this->request->query['s'];
+        }
+
+        if (isset($this->request->query['d'])) {
+            $url['?']['d'] = $this->request->query['d'];
+        }
+
+        return $url;
     }
 }
