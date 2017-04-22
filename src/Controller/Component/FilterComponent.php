@@ -15,7 +15,7 @@ use Cake\Controller\Component;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\Event;
-use Cake\Network\Request;
+use Cake\Http\ServerRequest;
 use Cake\ORM\Query;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
@@ -39,7 +39,7 @@ class FilterComponent extends Component
     /**
      * Request object.
      *
-     * @var Request
+     * @var ServerRequest
      */
     public $request;
 
@@ -265,13 +265,13 @@ class FilterComponent extends Component
     public function paginate(Query $query, array $countFields = [], $total = false)
     {
         $limit = $this->defaultLimit;
-        if (isset($this->request->query['l']) && in_array((integer)$this->request->query['l'], $this->limits)) {
+        if (in_array((integer)$this->request->getQuery('l', 0), $this->limits)) {
             $limit = (integer)$this->request->query['l'];
             $this->activeLimit = $limit;
         }
         if (!$this->activeLimit) {
             $lastLimit = $this->request->session()->read(join('.', [
-                'LIMIT_' . $this->request->params['plugin'],
+                'LIMIT_' . $this->request->getParam('plugin'),
                 $this->controller->name,
                 $this->action
             ]));
@@ -370,7 +370,7 @@ class FilterComponent extends Component
         }
 
         $path = join('.', [
-            'FILTER_' . $this->request->params['plugin'],
+            'FILTER_' . $this->request->getParam('plugin'),
             $this->controller->name,
             $this->action
         ]);
@@ -405,16 +405,16 @@ class FilterComponent extends Component
      * Try to retrieve a filtered backlink from the session.
      *
      * @param array $url
-     * @param Request $request
+     * @param ServerRequest $request
      * @return array
      */
-    public static function getBacklink($url, Request $request)
+    public static function getBacklink($url, ServerRequest $request)
     {
         if (!isset($url['plugin'])) {
-            $url['plugin'] = $request->params['plugin'];
+            $url['plugin'] = $request->getParam('plugin');
         }
         if (!isset($url['controller'])) {
-            $url['controller'] = $request->params['controller'];
+            $url['controller'] = $request->getParam('controller');
         }
 
         $path = join('.', [
@@ -458,8 +458,8 @@ class FilterComponent extends Component
         ];
 
         // check filter params
-        if (!empty($this->request->data)) {
-            foreach ($this->request->data as $field => $value) {
+        if (!empty($this->request->getData())) {
+            foreach ($this->request->getData() as $field => $value) {
                 if (!isset($this->filterFields[$field]) || $value === '') {
                     continue;
                 }
@@ -470,15 +470,15 @@ class FilterComponent extends Component
             }
         }
 
-        if (isset($this->request->query['s'], $this->sortFields[$this->request->query['s']])) {
+        if (isset($this->sortFields[$this->request->getQuery('s')])) {
             $d = 'asc';
-            if (isset($this->request->query['d'])) {
-                $dir = strtolower($this->request->query['d']);
+            if ($this->request->getQuery('d')) {
+                $dir = strtolower($this->request->getQuery('d'));
                 if (in_array($dir, ['asc', 'desc'])) {
                     $d = $dir;
                 }
             }
-            $field = $this->request->query['s'];
+            $field = $this->request->getQuery('s');
             $options = $this->_createSortFieldOption($field, $d, $options);
             $this->activeSort[$field] = $d;
         } elseif (!empty($this->defaultSort)) {
@@ -486,8 +486,8 @@ class FilterComponent extends Component
             $this->activeSort[$this->defaultSort['field']] = $this->defaultSort['dir'];
         }
 
-        if (isset($this->request->query['p'])) {
-            $this->page = $this->request->query['p'];
+        if ($this->request->getQuery('p')) {
+            $this->page = $this->request->getQuery('p');
         }
 
         $this->filterOptions = $options;
