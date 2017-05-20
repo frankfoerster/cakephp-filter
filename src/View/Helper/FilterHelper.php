@@ -141,7 +141,7 @@ class FilterHelper extends Helper
 
         $page = (integer)$this->paginationParams['page'];
         $pages = (integer)$this->paginationParams['pages'];
-        $pagesOnLeft = floor($maxPageNumbers / 2) - 1;
+        $pagesOnLeft = floor($maxPageNumbers / 2);
         $pagesOnRight = $maxPageNumbers - $pagesOnLeft - 1;
         $minPage = $page - $pagesOnLeft;
         $maxPage = $page + $pagesOnRight;
@@ -157,7 +157,7 @@ class FilterHelper extends Helper
         }
         if ($minPage < 1) {
             $minPage = 1;
-            $maxPage = $minPage + $maxPageNumbers;
+            $maxPage = $maxPageNumbers;
         }
         if ($maxPage > $pages) {
             $maxPage = $pages;
