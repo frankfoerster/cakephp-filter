@@ -101,6 +101,14 @@ class FilterHelper extends Helper
         parent::__construct($View, $config);
     }
 
+    /**
+     * Render a sort link for the given $field and $options, with $name as link text/content.
+     *
+     * @param string $name
+     * @param string $field
+     * @param array $options
+     * @return string
+     */
     public function sortLink($name, $field, $options = [])
     {
         $url = $this->_getSortUrl($field);
@@ -288,24 +296,23 @@ class FilterHelper extends Helper
     protected function _getFilterUrl($withLimit = true)
     {
         $url = [
-            'plugin' => $this->request->params['plugin'],
-            'controller' => $this->request->params['controller'],
-            'action' => $this->request->params['action'],
+            'plugin' => $this->request->getParam('plugin'),
+            'controller' => $this->request->getParam('controller'),
+            'action' => $this->request->getParam('action'),
         ];
 
         foreach($this->_passParams as $name => $value) {
             $url[$name] = $value;
         }
 
-        if (isset($this->request->params['sluggedFilter'])) {
-            $url['sluggedFilter'] = $this->request->params['sluggedFilter'];
+        if (!empty($this->request->getParam('sluggedFilter'))) {
+            $url['sluggedFilter'] = $this->request->getParam('sluggedFilter');
         };
 
-        if ($withLimit &&
-            isset($this->request->data['l']) &&
-            $this->request->data['l'] !== $this->paginationParams['defaultLimit']
-        ) {
-            $url['?']['l'] = $this->request->data['l'];
+        $limit = $this->request->getData('l');
+
+        if ($withLimit && !empty($limit) && $limit !== $this->paginationParams['defaultLimit']) {
+            $url['?']['l'] = $limit;
         }
 
         return $url;

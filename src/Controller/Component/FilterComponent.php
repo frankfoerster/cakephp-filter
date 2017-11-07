@@ -266,11 +266,11 @@ class FilterComponent extends Component
     {
         $limit = $this->defaultLimit;
         if (in_array((integer)$this->request->getQuery('l', 0), $this->limits)) {
-            $limit = (integer)$this->request->query['l'];
+            $limit = (integer)$this->request->getQuery('l');
             $this->activeLimit = $limit;
         }
         if (!$this->activeLimit) {
-            $lastLimit = $this->request->session()->read(join('.', [
+            $lastLimit = $this->request->getSession()->read(join('.', [
                 'LIMIT_' . $this->request->getParam('plugin'),
                 $this->controller->name,
                 $this->action
@@ -280,7 +280,7 @@ class FilterComponent extends Component
             }
             $this->activeLimit = $limit;
         }
-        $this->request->data['l'] = $limit;
+        $this->request = $this->request->withData('l', $limit);
 
         if ($total === false) {
             $countQuery = clone $query;
@@ -377,15 +377,15 @@ class FilterComponent extends Component
         $limitPath = str_replace('FILTER_', 'LIMIT_', $path);
 
         if ($this->activeLimit && $this->activeLimit !== $this->defaultLimit) {
-            $this->request->session()->write($limitPath, $this->activeLimit);
+            $this->request->getSession()->write($limitPath, $this->activeLimit);
         } else {
-            $this->request->session()->delete($limitPath);
+            $this->request->getSession()->delete($limitPath);
         }
 
         if (!empty($filterOptions)) {
-            $this->request->session()->write($path, $filterOptions);
+            $this->request->getSession()->write($path, $filterOptions);
         } else {
-            $this->request->session()->delete($path);
+            $this->request->getSession()->delete($path);
         }
 
         $this->controller->set('filter', [
@@ -423,7 +423,7 @@ class FilterComponent extends Component
             $url['action']
         ]);
 
-        if (($filterOptions = $request->session()->read($path))) {
+        if (($filterOptions = $request->getSession()->read($path))) {
             if (isset($filterOptions['slug'])) {
                 $url['sluggedFilter'] = $filterOptions['slug'];
                 unset($filterOptions['slug']);
@@ -704,8 +704,8 @@ class FilterComponent extends Component
     {
         if (!empty($this->controller->filterPassParams[$this->action])) {
             foreach ($this->controller->filterPassParams[$this->action] as $key) {
-                if (!empty($this->request->params[$key])) {
-                    $this->_passParams[$key] = $this->request->params[$key];
+                if (!empty($this->request->getParam($key))) {
+                    $this->_passParams[$key] = $this->request->getParam($key);
                 }
             }
         }
@@ -884,12 +884,12 @@ class FilterComponent extends Component
             return $url;
         }
 
-        if (isset($this->request->query['s'])) {
-            $url['?']['s'] = $this->request->query['s'];
+        if (!empty($this->request->getQuery('s'))) {
+            $url['?']['s'] = $this->request->getQuery('s');
         }
 
-        if (isset($this->request->query['d'])) {
-            $url['?']['d'] = $this->request->query['d'];
+        if (!empty($this->request->getQuery('d'))) {
+            $url['?']['d'] = $this->request->getQuery('d');
         }
 
         return $url;
