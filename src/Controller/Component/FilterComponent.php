@@ -272,7 +272,7 @@ class FilterComponent extends Component
         if (!$this->activeLimit) {
             $lastLimit = $this->request->getSession()->read(join('.', [
                 'LIMIT_' . $this->request->getParam('plugin'),
-                $this->controller->name,
+                $this->controller->getName(),
                 $this->action
             ]));
             if ($lastLimit) {
@@ -371,7 +371,7 @@ class FilterComponent extends Component
 
         $path = join('.', [
             'FILTER_' . $this->request->getParam('plugin'),
-            $this->controller->name,
+            $this->controller->getName(),
             $this->action
         ]);
         $limitPath = str_replace('FILTER_', 'LIMIT_', $path);
@@ -783,7 +783,10 @@ class FilterComponent extends Component
             return;
         }
 
-        $this->request->data = array_merge($this->request->getData(), $filterData);
+        $data = array_merge($this->request->getData(), $filterData);
+        foreach ($data as $key => $value) {
+            $this->request = $this->request->withData($key, $value);
+        }
         $this->slug = $sluggedFilter;
     }
 
