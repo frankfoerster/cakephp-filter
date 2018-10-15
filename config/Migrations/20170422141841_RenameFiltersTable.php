@@ -11,7 +11,7 @@ class RenameFiltersTable extends AbstractMigration
      */
     public function up()
     {
-        $this->table('ff_filters')->rename('frank_foerster_filter_filters');
+        $this->table('ff_filters')->rename('frank_foerster_filter_filters')->save();
 
         Cache::clear();
     }
@@ -23,7 +23,7 @@ class RenameFiltersTable extends AbstractMigration
      */
     public function down()
     {
-        $this->table('frank_foerster_filter_filters')->rename('ff_filters');
+        $this->table('frank_foerster_filter_filters')->rename('ff_filters')->save();
 
         Cache::clear();
     }
