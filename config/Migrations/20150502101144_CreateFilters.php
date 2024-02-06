@@ -10,7 +10,7 @@ class CreateFilters extends AbstractMigration
      *
      * @return void
      */
-    public function up()
+    public function up(): void
     {
         $table = $this->table('ff_filters');
         $table->addColumn('plugin', 'string', ['limit' => 255, 'null' => true, 'default' => null])
@@ -37,7 +37,8 @@ class CreateFilters extends AbstractMigration
      *
      * @return void
      */
-    public function down() {
+    public function down(): void
+    {
         $this->table('ff_filters')->drop();
 
         Cache::clear();

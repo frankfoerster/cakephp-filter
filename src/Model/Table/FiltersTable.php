@@ -23,7 +23,7 @@ class FiltersTable extends Table
      *
      * @param array $config
      */
-    public function initialize(array $config)
+    public function initialize(array $config): void
     {
         $this->setTable('frank_foerster_filter_filters');
         $this->addBehavior('Timestamp');
@@ -36,7 +36,7 @@ class FiltersTable extends Table
      * @param array $options
      * @return Query
      */
-    public function findSlugForFilterData(Query $query, array $options)
+    public function findSlugForFilterData(Query $query, array $options): Query
     {
         if (!isset($options['request']) || get_class($options['request']) !== ServerRequest::class) {
             user_error('The request query option must exist and must be of type Cake\Http\ServerRequest.');
@@ -67,7 +67,7 @@ class FiltersTable extends Table
      * @param array $options
      * @return array
      */
-    public function findFilterDataBySlug(Query $query, array $options)
+    public function findFilterDataBySlug(Query $query, array $options): array
     {
         if (!isset($options['request']) || get_class($options['request']) !== ServerRequest::class) {
             user_error('The request query option must exist and must be of type Cake\Http\ServerRequest.');
@@ -90,7 +90,7 @@ class FiltersTable extends Table
      * @param array $filterData
      * @return string The slug representing the given $filterData.
      */
-    public function createFilterForFilterData(ServerRequest $request, array $filterData)
+    public function createFilterForFilterData(ServerRequest $request, array $filterData): string
     {
         $charlist = 'abcdefghikmnopqrstuvwxyz';
 
@@ -118,7 +118,7 @@ class FiltersTable extends Table
      * @param array $filterData
      * @return string
      */
-    protected function _encodeFilterData(array $filterData)
+    protected function _encodeFilterData(array $filterData): string
     {
         return json_encode($filterData);
     }
@@ -129,7 +129,7 @@ class FiltersTable extends Table
      * @param string $encodedFilterData
      * @return array
      */
-    protected function _decodeFilterData($encodedFilterData)
+    protected function _decodeFilterData(string $encodedFilterData): array
     {
         return json_decode($encodedFilterData, true);
     }
@@ -140,7 +140,7 @@ class FiltersTable extends Table
      * @param ServerRequest $request
      * @return array
      */
-    protected function _pluginCondition(ServerRequest $request)
+    protected function _pluginCondition(ServerRequest $request): array
     {
         if ($request->getParam('plugin') !== null) {
             return [$this->getAlias() . '.plugin' => $request->getParam('plugin')];
@@ -156,7 +156,7 @@ class FiltersTable extends Table
      * @param ServerRequest $request
      * @return bool
      */
-    protected function _slugExists($slug, ServerRequest $request)
+    protected function _slugExists(string $slug, ServerRequest $request): bool
     {
         $existingSlug = $this->find('all')
             ->select($this->getAlias() . '.slug')
@@ -179,7 +179,7 @@ class FiltersTable extends Table
      * @param ServerRequest $request
      * @return Query
      */
-    protected function _findEncryptedFilterData(Query $query, ServerRequest $request)
+    protected function _findEncryptedFilterData(Query $query, ServerRequest $request): Query
     {
         return $query
             ->select($this->getAlias() . '.filter_data')

@@ -31,7 +31,7 @@ class FilterHelper extends Helper
      *
      * @var array
      */
-    public $helpers = [
+    public array $helpers = [
         'Html'
     ];
 
@@ -40,49 +40,49 @@ class FilterHelper extends Helper
      *
      * @var array
      */
-    public $activeFilters = [];
+    public array $activeFilters = [];
 
     /**
      * Filter fields registered on the controller.
      *
      * @var array
      */
-    public $filterFields = [];
+    public array $filterFields = [];
 
     /**
      * Holds the active sort field (key) and its direction (value).
      *
      * @var array
      */
-    public $activeSort = [];
+    public array $activeSort = [];
 
     /**
      * Sort fields registered on the controller.
      *
      * @var array
      */
-    public $sortFields = [];
+    public array $sortFields = [];
 
     /**
      * Holds the default sort field (key) and its direction (value).
      *
      * @var array
      */
-    public $defaultSort = [];
+    public array $defaultSort = [];
 
     /**
      * Holds all pagination params.
      *
      * @var array
      */
-    public $paginationParams = [];
+    public array $paginationParams = [];
 
     /**
      * Holds additional params that should be passed to the filter url.
      *
      * @var array
      */
-    protected $_passParams = [];
+    protected array $_passParams = [];
 
     /**
      * Constructor
@@ -109,7 +109,7 @@ class FilterHelper extends Helper
      * @param array $options
      * @return string
      */
-    public function sortLink($name, $field, $options = [])
+    public function sortLink(string $name, string $field, array $options = []): string
     {
         $url = $this->_getSortUrl($field);
 
@@ -139,7 +139,7 @@ class FilterHelper extends Helper
      * @param array $passParams Optional params passed to the filter urls.
      * @return string
      */
-    public function pagination($maxPageNumbers = 10, $itemType = 'Items', $class = '', $element = 'Filter/pagination', $passParams = [])
+    public function pagination(int $maxPageNumbers = 10, string $itemType = 'Items', string $class = '', string $element = 'Filter/pagination', array $passParams = []): string
     {
         if (empty($this->paginationParams)) {
             return '';
@@ -209,9 +209,9 @@ class FilterHelper extends Helper
      * @param array $url proper route array
      * @return array
      */
-    public function getBacklink($url)
+    public function getBacklink(array $url): array
     {
-        return FilterComponent::getBacklink($url, $this->request);
+        return FilterComponent::getBacklink($url, $this->getView()->getRequest());
     }
 
     /**
@@ -220,7 +220,7 @@ class FilterHelper extends Helper
      * @param int $page
      * @return array
      */
-    protected function _getPaginatedUrl($page)
+    protected function _getPaginatedUrl(int $page): array
     {
         $url = $this->_getSortUrl();
 
@@ -240,7 +240,7 @@ class FilterHelper extends Helper
      * @param string $field The field to sort.
      * @return array
      */
-    protected function _getSortUrl($field = '')
+    protected function _getSortUrl(string $field = ''): array
     {
         $url = $this->_getFilterUrl();
 
@@ -290,26 +290,26 @@ class FilterHelper extends Helper
     /**
      * Get the filter url.
      *
-     * @param boolean $withLimit
+     * @param bool $withLimit
      * @return array
      */
-    protected function _getFilterUrl($withLimit = true)
+    protected function _getFilterUrl(bool $withLimit = true): array
     {
         $url = [
-            'plugin' => $this->request->getParam('plugin'),
-            'controller' => $this->request->getParam('controller'),
-            'action' => $this->request->getParam('action'),
+            'plugin' => $this->getView()->getRequest()->getParam('plugin'),
+            'controller' => $this->getView()->getRequest()->getParam('controller'),
+            'action' => $this->getView()->getRequest()->getParam('action'),
         ];
 
         foreach($this->_passParams as $name => $value) {
             $url[$name] = $value;
         }
 
-        if (!empty($this->request->getParam('sluggedFilter'))) {
-            $url['sluggedFilter'] = $this->request->getParam('sluggedFilter');
+        if (!empty($this->getView()->getRequest()->getParam('sluggedFilter'))) {
+            $url['sluggedFilter'] = $this->getView()->getRequest()->getParam('sluggedFilter');
         };
 
-        $limit = $this->request->getData('l');
+        $limit = $this->getView()->getRequest()->getData('l');
 
         if ($withLimit && !empty($limit) && $limit !== $this->paginationParams['defaultLimit']) {
             $url['?']['l'] = $limit;

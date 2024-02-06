@@ -14,9 +14,10 @@ namespace FrankFoerster\Filter\Controller\Component;
 use Cake\Controller\Component;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
-use Cake\Event\Event;
+use Cake\Event\EventInterface;
 use Cake\Http\ServerRequest;
 use Cake\ORM\Query;
+use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
 use FrankFoerster\Filter\Model\Entity\Filter;
@@ -32,140 +33,140 @@ class FilterComponent extends Component
      *
      * @var array
      */
-    public $components = [
+    public array $components = [
         'Session'
     ];
 
     /**
      * Request object.
      *
-     * @var ServerRequest
+     * @var ServerRequest|null
      */
-    public $request;
+    public ?ServerRequest $request = null;
 
     /**
      * Controller object this Component is operating on.
      *
-     * @var Controller
+     * @var Controller|null
      */
-    public $controller;
+    public ?Controller $controller = null;
 
     /**
      * The requested controller action
      *
-     * @var string
+     * @var string|null
      */
-    public $action;
+    public ?string $action = null;
 
     /**
      * Filter fields registered on the controller.
      *
      * @var array
      */
-    public $filterFields = [];
+    public array $filterFields = [];
 
     /**
      * Filter options for find calls.
      *
      * @var array
      */
-    public $filterOptions = [];
+    public array $filterOptions = [];
 
     /**
      * Holds all active filters and their values.
      *
      * @var array
      */
-    public $activeFilters = [];
+    public array $activeFilters = [];
 
     /**
      * Holds the slug for the current active filters.
      *
      * @var string
      */
-    public $slug;
+    public string $slug;
 
     /**
      * Sort fields registered on the controller.
      *
      * @var array
      */
-    public $sortFields = [];
+    public array $sortFields = [];
 
     /**
      * Holds the active sort field (key) and its direction (value).
      *
      * @var array
      */
-    public $activeSort = [];
+    public array $activeSort = [];
 
     /**
      * Holds the active limit.
      *
-     * @var integer
+     * @var int
      */
-    public $activeLimit;
+    public int $activeLimit;
 
     /**
      * Holds the default sort field (key) and its direction (value).
      *
      * @var array
      */
-    public $defaultSort = [];
+    public array $defaultSort = [];
 
     /**
-     * @var integer The current page.
+     * @var int The current page.
      */
-    public $page = 1;
+    public int $page = 1;
 
     /**
      * Holds all pagination params.
      *
      * @var array
      */
-    public $paginationParams = [];
+    public array $paginationParams = [];
 
     /**
      * Default pagination limit.
      *
-     * @var integer
+     * @var int
      */
-    public $defaultLimit = 10;
+    public int $defaultLimit = 10;
 
     /**
      * Holds all available pagination limits.
      *
      * @var array
      */
-    public $limits = [];
+    public array $limits = [];
 
     /**
      * Holds the FiltersTable instance.
      *
-     * @var FiltersTable
+     * @var FiltersTable|Table
      */
-    public $Filters;
+    public FiltersTable|Table $Filters;
 
     /**
      * Tells if sort is enabled after initialization.
      *
-     * @var boolean
+     * @var bool
      */
-    protected $_sortEnabled = false;
+    protected bool $_sortEnabled = false;
 
     /**
      * Tells if filters are enabled after initialization.
      *
-     * @var boolean
+     * @var bool
      */
-    protected $_filterEnabled = false;
+    protected bool $_filterEnabled = false;
 
     /**
      * Tells if pagination is enabled after initialization.
      *
-     * @var boolean
+     * @var bool
      */
-    protected $_paginationEnabled = false;
+    protected bool $_paginationEnabled = false;
 
 
     /**
@@ -174,7 +175,7 @@ class FilterComponent extends Component
      *
      * @var array
      */
-    protected $_passParams = [];
+    protected array $_passParams = [];
 
     /**
      * Default config
@@ -183,21 +184,21 @@ class FilterComponent extends Component
      *
      * @var array
      */
-    protected $_defaultConfig = [
+    protected array $_defaultConfig = [
         'filterTable' => 'FrankFoerster/Filter.Filters'
     ];
 
     /**
      * Called before the controller’s beforeFilter method, but after the controller’s initialize() method.
      *
-     * @param Event $event
+     * @param EventInterface $event
      */
-    public function beforeFilter(Event $event)
+    public function beforeFilter(EventInterface $event): void
     {
         $this->controller = $event->getSubject();
         $this->request = $this->controller->request;
         $this->action = $this->request->getParam('action');
-        $this->Filters = TableRegistry::get($this->getConfig('filterTable'));
+        $this->Filters = TableRegistry::getTableLocator()->get($this->getConfig('filterTable'));;
 
         $this->_setupSort();
         $this->_setupFilters();
@@ -207,10 +208,10 @@ class FilterComponent extends Component
     /**
      * Called after the Controller::beforeFilter() and before the controller action.
      *
-     * @param Event $event
+     * @param EventInterface $event
      * @return bool
      */
-    public function startup(Event $event)
+    public function startup(EventInterface $event): bool
     {
         if (!$this->_isFilterRequest()) {
             return true;
@@ -240,13 +241,13 @@ class FilterComponent extends Component
      * @param Query $query
      * @return Query
      */
-    public function filter(Query $query)
+    public function filter(Query $query): Query
     {
         if (!empty($this->filterOptions['conditions'])) {
             $query->where($this->filterOptions['conditions']);
         }
         if (!empty($this->filterOptions['order'])) {
-            $query->order($this->filterOptions['order']);
+            $query->orderBy($this->filterOptions['order']);
         }
 
         return $query;
@@ -259,10 +260,10 @@ class FilterComponent extends Component
      *
      * @param Query $query
      * @param array $countFields
-     * @param boolean $total
+     * @param bool $total
      * @return Query
      */
-    public function paginate(Query $query, array $countFields = [], $total = false)
+    public function paginate(Query $query, array $countFields = [], bool $total = false): Query
     {
         $limit = $this->defaultLimit;
         if (in_array((integer)$this->request->getQuery('l', 0), $this->limits)) {
@@ -290,7 +291,7 @@ class FilterComponent extends Component
             $total = $countQuery->count();
         }
 
-        if ($limit !== null && $total !== null) {
+        if ($total !== null) {
             $pages = ceil($total / $limit);
             if ($this->page > $pages) {
                 $this->page = $pages;
@@ -331,10 +332,10 @@ class FilterComponent extends Component
      * - Save the filter, sort and pagination params to the session.
      * - Can be later retrieved via FilterHelper::getBacklink($url)
      *
-     * @param Event $event
+     * @param EventInterface $event
      * @return bool
      */
-    public function beforeRender(Event $event)
+    public function beforeRender(EventInterface $event): bool
     {
         if (!$this->controller || !$this->request || !$this->action) {
             return true;
@@ -408,7 +409,7 @@ class FilterComponent extends Component
      * @param ServerRequest $request
      * @return array
      */
-    public static function getBacklink($url, ServerRequest $request)
+    public static function getBacklink(array $url, ServerRequest $request): array
     {
         if (!isset($url['plugin'])) {
             $url['plugin'] = $request->getParam('plugin');
@@ -446,7 +447,7 @@ class FilterComponent extends Component
      *
      * @return void
      */
-    protected function _initFilterOptions()
+    protected function _initFilterOptions(): void
     {
         if (!$this->_filterEnabled && !$this->_sortEnabled) {
             return;
@@ -496,9 +497,9 @@ class FilterComponent extends Component
     /**
      * Check if sorting for the current controller action is enabled.
      *
-     * @return boolean
+     * @return bool
      */
-    protected function _isSortEnabled()
+    protected function _isSortEnabled(): bool
     {
         if (!isset($this->controller->sortFields)) {
             return false;
@@ -519,9 +520,9 @@ class FilterComponent extends Component
     /**
      * Check if filtering for the current controller action is enabled.
      *
-     * @return boolean
+     * @return bool
      */
-    protected function _isFilterEnabled()
+    protected function _isFilterEnabled(): bool
     {
         if (!isset($this->controller->filterFields)) {
             return false;
@@ -542,9 +543,9 @@ class FilterComponent extends Component
     /**
      * Check if pagination is enabled for the current controller action.
      *
-     * @return boolean
+     * @return bool
      */
-    protected function _isPaginationEnabled()
+    protected function _isPaginationEnabled(): bool
     {
         if (!isset($this->controller->limits) ||
             !isset($this->controller->limits[$this->action]) ||
@@ -562,7 +563,7 @@ class FilterComponent extends Component
      *
      * @return array
      */
-    protected function _getSortFields()
+    protected function _getSortFields(): array
     {
         $sortFields = [];
 
@@ -583,7 +584,7 @@ class FilterComponent extends Component
      *
      * @return array
      */
-    protected function _getFilterFields()
+    protected function _getFilterFields(): array
     {
         $filterFields = [];
 
@@ -605,9 +606,9 @@ class FilterComponent extends Component
      * @param string $field The field name to sort
      * @param string $dir The sort direction (asc, desc)
      * @param array $options The current find options where the sorting should be added.
-     * @return mixed
+     * @return array
      */
-    protected function _createSortFieldOption($field, $dir, $options)
+    protected function _createSortFieldOption(string $field, string $dir, array $options): array
     {
         $sortField = $this->sortFields[$field];
         if (isset($sortField['custom'])) {
@@ -632,7 +633,7 @@ class FilterComponent extends Component
      * @param array $options
      * @return array
      */
-    protected function _createFilterFieldOption($field, $value, $options)
+    protected function _createFilterFieldOption(string $field, mixed $value, array $options): array
     {
         $filterField = $this->filterFields[$field];
 
@@ -700,7 +701,7 @@ class FilterComponent extends Component
     /**
      * Puts the values in the passParams array
      */
-    protected function _extractPassParams()
+    protected function _extractPassParams(): void
     {
         if (!empty($this->controller->filterPassParams[$this->action])) {
             foreach ($this->controller->filterPassParams[$this->action] as $key) {
@@ -716,7 +717,7 @@ class FilterComponent extends Component
      *
      * @return array
      */
-    protected function _getFilterData()
+    protected function _getFilterData(): array
     {
         $rawFilterData = $this->request->getData();
         $filterData = [];
@@ -730,11 +731,11 @@ class FilterComponent extends Component
     }
 
     /**
-     * Setup default sort options.
+     * Set up default sort options.
      *
      * @return void
      */
-    protected function _setupSort()
+    protected function _setupSort(): void
     {
         if (!($this->_sortEnabled = $this->_isSortEnabled())) {
             return;
@@ -757,14 +758,14 @@ class FilterComponent extends Component
     }
 
     /**
-     * Setup the filter field options.
+     * Set up the filter field options.
      *
      * If the current request is provided with the sluggedFilter param,
      * then the corresponding filter data will be fetched and set on the request data.
      *
      * @return void
      */
-    protected function _setupFilters()
+    protected function _setupFilters(): void
     {
         if (!($this->_filterEnabled = $this->_isFilterEnabled())) {
             return;
@@ -777,7 +778,7 @@ class FilterComponent extends Component
             return;
         }
 
-        $filterData = $this->Filters->find('filterDataBySlug', ['request' => $this->request]);
+        $filterData = $this->Filters->find('filterDataBySlug', ['request' => $this->request])->toArray();
 
         if (empty($filterData)) {
             return;
@@ -791,11 +792,11 @@ class FilterComponent extends Component
     }
 
     /**
-     * Setup the default pagination params.
+     * Set up the default pagination params.
      *
      * @return void
      */
-    protected function _setupPagination()
+    protected function _setupPagination(): void
     {
         if (!($this->_paginationEnabled = $this->_isPaginationEnabled())) {
             return;
@@ -810,7 +811,7 @@ class FilterComponent extends Component
      *
      * @return bool
      */
-    protected function _isFilterRequest()
+    protected function _isFilterRequest(): bool
     {
         return (
             $this->controller !== null  &&
@@ -826,7 +827,7 @@ class FilterComponent extends Component
      * @param array $filterData
      * @return string The slug.
      */
-    protected function _createFilterSlug(array $filterData)
+    protected function _createFilterSlug(array $filterData): string
     {
         /** @var Filter $existingFilter */
         $existingFilter = $this->Filters->find('slugForFilterData', [
@@ -844,10 +845,10 @@ class FilterComponent extends Component
     /**
      * Apply filter data to the given url.
      *
-     * @param $url
+     * @param array $url
      * @return array modified url array
      */
-    protected function _applyFilterData($url)
+    protected function _applyFilterData(array $url): array
     {
         $filterData = $this->_getFilterData();
         if (empty($filterData)) {
@@ -866,7 +867,7 @@ class FilterComponent extends Component
      * @param array $url
      * @return array modified url array
      */
-    protected function _applyPassedParams($url)
+    protected function _applyPassedParams(array $url): array
     {
         if (empty($this->_passParams)) {
             return $url;
@@ -881,7 +882,7 @@ class FilterComponent extends Component
      * @param array $url
      * @return array modified url array
      */
-    protected function _applySort($url)
+    protected function _applySort(array $url): array
     {
         if (!$this->_sortEnabled) {
             return $url;

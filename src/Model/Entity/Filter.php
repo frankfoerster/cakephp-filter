@@ -12,6 +12,7 @@
 namespace FrankFoerster\Filter\Model\Entity;
 
 use Cake\ORM\Entity;
+use DateTime;
 
 /**
  * Class Filter
@@ -22,7 +23,7 @@ use Cake\ORM\Entity;
  * @property string $action
  * @property string $slug
  * @property string $filter_data
- * @property \DateTime $created
+ * @property DateTime $created
  */
 class Filter extends Entity
 {
