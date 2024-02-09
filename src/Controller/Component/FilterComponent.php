@@ -196,7 +196,7 @@ class FilterComponent extends Component
     public function beforeFilter(EventInterface $event): void
     {
         $this->controller = $event->getSubject();
-        $this->request = $this->controller->request;
+        $this->request = $this->controller->getRequest();
         $this->action = $this->request->getParam('action');
         $this->Filters = TableRegistry::getTableLocator()->get($this->getConfig('filterTable'));;
 
