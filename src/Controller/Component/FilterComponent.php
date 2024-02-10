@@ -82,9 +82,9 @@ class FilterComponent extends Component
     /**
      * Holds the slug for the current active filters.
      *
-     * @var string
+     * @var string|null
      */
-    public string $slug;
+    public ?string $slug = null;
 
     /**
      * Sort fields registered on the controller.
@@ -105,7 +105,7 @@ class FilterComponent extends Component
      *
      * @var int
      */
-    public int $activeLimit;
+    public int $activeLimit = -1;
 
     /**
      * Holds the default sort field (key) and its direction (value).
