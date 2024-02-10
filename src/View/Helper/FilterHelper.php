@@ -92,7 +92,7 @@ class FilterHelper extends Helper
      */
     public function __construct(View $View, array $config = [])
     {
-        $filterOptions = Hash::get($View->viewVars, 'filter', []);
+        $filterOptions = $View->get('filter', []);
 
         foreach ($filterOptions as $key => $val) {
             $this->{$key} = $val;
