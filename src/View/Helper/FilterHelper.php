@@ -82,7 +82,7 @@ class FilterHelper extends Helper
      *
      * @var array
      */
-    protected array $_passParams = [];
+    public array $passParams = [];
 
     /**
      * Constructor
@@ -145,7 +145,7 @@ class FilterHelper extends Helper
             return '';
         }
 
-        $this->_passParams = array_merge($this->paginationParams['passParams'], $passParams);
+        $this->passParams = array_merge($this->paginationParams['passParams'], $passParams);
 
         $page = (integer)$this->paginationParams['page'];
         $pages = (integer)$this->paginationParams['pages'];
@@ -301,7 +301,7 @@ class FilterHelper extends Helper
             'action' => $this->getView()->getRequest()->getParam('action'),
         ];
 
-        foreach($this->_passParams as $name => $value) {
+        foreach($this->passParams as $name => $value) {
             $url[$name] = $value;
         }
 
