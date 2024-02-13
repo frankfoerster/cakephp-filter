@@ -778,7 +778,7 @@ class FilterComponent extends Component
             return;
         }
 
-        $filterData = $this->Filters->find('filterDataBySlug', ['request' => $this->request])->toArray();
+        $filterData = $this->Filters->findFilterDataBySlug($this->Filters->find(), $this->request);
 
         if (empty($filterData)) {
             return;

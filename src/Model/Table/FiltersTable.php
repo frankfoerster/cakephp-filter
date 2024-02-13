@@ -64,16 +64,12 @@ class FiltersTable extends Table
      * Find stored filter data for a given slug.
      *
      * @param Query $query
-     * @param array $options
+     * @param ServerRequest $request
      * @return array
      */
-    public function findFilterDataBySlug(Query $query, array $options): array
+    public function findFilterDataBySlug(Query $query, ServerRequest $request): array
     {
-        if (!isset($options['request']) || get_class($options['request']) !== ServerRequest::class) {
-            user_error('The request query option must exist and must be of type Cake\Http\ServerRequest.');
-        }
-
-        $encryptedFilterData = $this->_findEncryptedFilterData($query, $options['request'])->first();
+        $encryptedFilterData = $this->_findEncryptedFilterData($query, $request)->first();
 
         if ($encryptedFilterData) {
             $encryptedFilterData = $encryptedFilterData->toArray();
