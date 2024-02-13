@@ -856,9 +856,9 @@ class FilterComponent extends Component
         }
 
         return $url + [
-            'sluggedFilter' => $this->_createFilterSlug($filterData),
-            '?' => $this->request->getQuery()
-        ];
+                $this->_createFilterSlug($filterData),
+                '?' => $this->request->getQuery()
+            ];
     }
 
     /**

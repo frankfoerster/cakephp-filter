@@ -12,7 +12,6 @@
 namespace FrankFoerster\Filter\View\Helper;
 
 use Cake\Routing\Router;
-use Cake\Utility\Hash;
 use Cake\View\Helper;
 use Cake\View\View;
 use Cake\View\Helper\HtmlHelper;
@@ -306,7 +305,7 @@ class FilterHelper extends Helper
         }
 
         if (!empty($this->getView()->getRequest()->getParam('sluggedFilter'))) {
-            $url['sluggedFilter'] = $this->getView()->getRequest()->getParam('sluggedFilter');
+            $url[] = $this->getView()->getRequest()->getParam('sluggedFilter');
         };
 
         $limit = $this->getView()->getRequest()->getData('l');
