@@ -830,7 +830,7 @@ class FilterComponent extends Component
     protected function _createFilterSlug(array $filterData): string
     {
         /** @var Filter $existingFilter */
-        $existingFilter = $this->Filters->find('slugForFilterData', [
+        $existingFilter = $this->Filters->find(type: 'slugForFilterData', options: [
             'request' => $this->request,
             'filterData' => $filterData
         ])->first();
