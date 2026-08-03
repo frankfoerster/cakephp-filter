@@ -35,6 +35,11 @@ class FilterHelper extends Helper
     ];
 
     /**
+     * @var bool
+     */
+    public bool $useQuery = false;
+
+    /**
      * Holds all active filters and their values.
      *
      * @var array
@@ -304,7 +309,12 @@ class FilterHelper extends Helper
             $url[$name] = $value;
         }
 
-        if (!empty($this->getView()->getRequest()->getParam('sluggedFilter'))) {
+        if ($this->useQuery) {
+            if (!isset($url['?'])) {
+                $url['?'] = [];
+            }
+            $url['?'] = array_merge($url['?'], $this->activeFilters);
+        } elseif (!empty($this->getView()->getRequest()->getParam('sluggedFilter'))) {
             $url[] = $this->getView()->getRequest()->getParam('sluggedFilter');
         };
 

@@ -185,7 +185,8 @@ class FilterComponent extends Component
      * @var array
      */
     protected array $_defaultConfig = [
-        'filterTable' => 'FrankFoerster/Filter.Filters'
+        'filterTable' => 'FrankFoerster/Filter.Filters',
+        'useQuery' => false
     ];
 
     /**
@@ -390,6 +391,7 @@ class FilterComponent extends Component
         }
 
         $this->controller->set('filter', [
+            'useQuery' => $this->getConfig('useQuery'),
             'activeFilters' => $this->activeFilters,
             'filterFields' => $this->filterFields,
             'activeSort' => $this->activeSort,
@@ -459,9 +461,13 @@ class FilterComponent extends Component
         ];
 
         // check filter params
-        if (!empty($this->request->getData())) {
-            foreach ($this->request->getData() as $field => $value) {
-                if (!isset($this->filterFields[$field]) || $value === '') {
+        $data = $this->request->getData();
+        if (empty($data) || $this->getConfig('useQuery')) {
+            $data = array_merge($this->request->getQueryParams(), $data);
+        }
+        if (!empty($data)) {
+            foreach ($data as $field => $value) {
+                if (!isset($this->filterFields[$field]) || $value === '' || (is_array($value) && empty($value))) {
                     continue;
                 }
 
@@ -852,6 +858,15 @@ class FilterComponent extends Component
     {
         $filterData = $this->_getFilterData();
         if (empty($filterData)) {
+            return $url;
+        }
+
+        if ($this->getConfig('useQuery')) {
+            if (!isset($url['?'])) {
+                $url['?'] = [];
+            }
+            $url['?'] = array_merge($url['?'], $filterData);
+
             return $url;
         }
 
