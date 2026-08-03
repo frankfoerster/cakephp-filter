@@ -216,6 +216,7 @@ class FilterComponent extends Component
     {
         if (!$this->_isFilterRequest()) {
             $event->setResult(true);
+            return;
         }
 
         $this->_initFilterOptions();
@@ -231,6 +232,7 @@ class FilterComponent extends Component
 
             $this->controller->redirect($url);
             $event->setResult(false);
+            return;
         }
 
         $event->setResult(true);
@@ -334,12 +336,13 @@ class FilterComponent extends Component
      * - Can be later retrieved via FilterHelper::getBacklink($url)
      *
      * @param EventInterface $event
-     * @return bool
+     * @return void
      */
-    public function beforeRender(EventInterface $event): bool
+    public function beforeRender(EventInterface $event): void
     {
         if (!$this->controller || !$this->request || !$this->action) {
-            return true;
+            $event->setResult(true);
+            return;
         }
         $filterOptions = [];
 
@@ -401,7 +404,7 @@ class FilterComponent extends Component
             'passParams' => $this->_passParams
         ]);
 
-        return true;
+        $event->setResult(true);
     }
 
     /**
