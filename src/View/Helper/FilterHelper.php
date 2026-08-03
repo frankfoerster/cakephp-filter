@@ -40,6 +40,11 @@ class FilterHelper extends Helper
     public bool $useQuery = false;
 
     /**
+     * @var string
+     */
+    public string $cookieName = 'cakephp-filter';
+
+    /**
      * Holds all active filters and their values.
      *
      * @var array
@@ -208,14 +213,14 @@ class FilterHelper extends Helper
     }
 
     /**
-     * Try to retrieve a filtered backlink from the session.
+     * Try to retrieve a filtered backlink from the cookie.
      *
      * @param array $url proper route array
      * @return array
      */
     public function getBacklink(array $url): array
     {
-        return FilterComponent::getBacklink($url, $this->getView()->getRequest());
+        return FilterComponent::getBacklink($url, $this->getView()->getRequest(), $this->cookieName);
     }
 
     /**

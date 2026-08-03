@@ -15,11 +15,13 @@ use Cake\Controller\Component;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
+use Cake\Http\Cookie\Cookie;
 use Cake\Http\ServerRequest;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
+use DateTime;
 use FrankFoerster\Filter\Model\Entity\Filter;
 use FrankFoerster\Filter\Model\Table\FiltersTable;
 
@@ -33,9 +35,7 @@ class FilterComponent extends Component
      *
      * @var array
      */
-    public array $components = [
-        'Session'
-    ];
+    public array $components = [];
 
     /**
      * Request object.
@@ -186,7 +186,8 @@ class FilterComponent extends Component
      */
     protected array $_defaultConfig = [
         'filterTable' => 'FrankFoerster/Filter.Filters',
-        'useQuery' => false
+        'useQuery' => false,
+        'cookieName' => 'cakephp-filter'
     ];
 
     /**
@@ -273,8 +274,9 @@ class FilterComponent extends Component
             $limit = (integer)$this->request->getQuery('l');
             $this->activeLimit = $limit;
         }
-        if (!$this->activeLimit) {
-            $lastLimit = $this->request->getSession()->read(join('.', [
+        if ($this->activeLimit <= 0) {
+            $cookieData = self::_getCookieData($this->request, $this->getConfig('cookieName'));
+            $lastLimit = Hash::get($cookieData, join('.', [
                 'LIMIT_' . $this->request->getParam('plugin'),
                 $this->controller->getName(),
                 $this->action
@@ -332,7 +334,7 @@ class FilterComponent extends Component
      *
      * Is called after the controller executes the requested action’s logic, but before the controller’s renders views and layout.
      *
-     * - Save the filter, sort and pagination params to the session.
+     * - Save the filter, sort and pagination params to the cookie.
      * - Can be later retrieved via FilterHelper::getBacklink($url)
      *
      * @param EventInterface $event
@@ -381,20 +383,25 @@ class FilterComponent extends Component
         ]);
         $limitPath = str_replace('FILTER_', 'LIMIT_', $path);
 
+        $cookieData = self::_getCookieData($this->request, $this->getConfig('cookieName'));
+
         if ($this->activeLimit && $this->activeLimit !== $this->defaultLimit) {
-            $this->request->getSession()->write($limitPath, $this->activeLimit);
+            $cookieData = Hash::insert($cookieData, $limitPath, $this->activeLimit);
         } else {
-            $this->request->getSession()->delete($limitPath);
+            $cookieData = Hash::remove($cookieData, $limitPath);
         }
 
         if (!empty($filterOptions)) {
-            $this->request->getSession()->write($path, $filterOptions);
+            $cookieData = Hash::insert($cookieData, $path, $filterOptions);
         } else {
-            $this->request->getSession()->delete($path);
+            $cookieData = Hash::remove($cookieData, $path);
         }
+
+        $this->_writeCookieData($cookieData);
 
         $this->controller->set('filter', [
             'useQuery' => $this->getConfig('useQuery'),
+            'cookieName' => $this->getConfig('cookieName'),
             'activeFilters' => $this->activeFilters,
             'filterFields' => $this->filterFields,
             'activeSort' => $this->activeSort,
@@ -408,13 +415,14 @@ class FilterComponent extends Component
     }
 
     /**
-     * Try to retrieve a filtered backlink from the session.
+     * Try to retrieve a filtered backlink from the cookie.
      *
      * @param array $url
      * @param ServerRequest $request
+     * @param string $cookieName
      * @return array
      */
-    public static function getBacklink(array $url, ServerRequest $request): array
+    public static function getBacklink(array $url, ServerRequest $request, string $cookieName = 'cakephp-filter'): array
     {
         if (!isset($url['plugin'])) {
             $url['plugin'] = $request->getParam('plugin');
@@ -429,7 +437,9 @@ class FilterComponent extends Component
             $url['action']
         ]);
 
-        if (($filterOptions = $request->getSession()->read($path))) {
+        $cookieData = self::_getCookieData($request, $cookieName);
+
+        if (($filterOptions = Hash::get($cookieData, $path))) {
             if (isset($filterOptions['slug'])) {
                 $url['sluggedFilter'] = $filterOptions['slug'];
                 unset($filterOptions['slug']);
@@ -915,5 +925,40 @@ class FilterComponent extends Component
         }
 
         return $url;
+    }
+
+    /**
+     * Get the cookie data.
+     *
+     * @param ServerRequest $request The request to read the cookie from.
+     * @param string $cookieName The name of the cookie.
+     * @return array
+     */
+    protected static function _getCookieData(ServerRequest $request, string $cookieName = 'cakephp-filter'): array
+    {
+        $cookie = $request->getCookie($cookieName);
+        if (!$cookie) {
+            return [];
+        }
+
+        $data = json_decode($cookie, true);
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Write the cookie data.
+     *
+     * @param array $data The data to write to the cookie.
+     * @return void
+     */
+    protected function _writeCookieData(array $data): void
+    {
+        $cookie = Cookie::create($this->getConfig('cookieName'), json_encode($data))
+            ->withPath($this->request->getAttribute('webroot') ?: '/')
+            ->withExpiry(new DateTime('+7 days'));
+
+        $response = $this->controller->getResponse()->withCookie($cookie);
+        $this->controller->setResponse($response);
     }
 }
