@@ -956,7 +956,10 @@ class FilterComponent extends Component
     {
         $cookie = Cookie::create($this->getConfig('cookieName'), json_encode($data))
             ->withPath($this->request->getAttribute('webroot') ?: '/')
-            ->withExpiry(new DateTime('+7 days'));
+            ->withExpiry(new DateTime('+7 days'))
+            ->withHttpOnly(true)
+            ->withSecure($this->request->is('ssl'))
+            ->withSameSite('Lax');
 
         $response = $this->controller->getResponse()->withCookie($cookie);
         $this->controller->setResponse($response);
