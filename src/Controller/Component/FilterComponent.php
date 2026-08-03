@@ -210,12 +210,12 @@ class FilterComponent extends Component
      * Called after the Controller::beforeFilter() and before the controller action.
      *
      * @param EventInterface $event
-     * @return bool
+     * @return void
      */
-    public function startup(EventInterface $event): bool
+    public function startup(EventInterface $event): void
     {
         if (!$this->_isFilterRequest()) {
-            return true;
+            $event->setResult(true);
         }
 
         $this->_initFilterOptions();
@@ -230,10 +230,10 @@ class FilterComponent extends Component
             $url = $this->_applySort($url);
 
             $this->controller->redirect($url);
-            return false;
+            $event->setResult(false);
         }
 
-        return true;
+        $event->setResult(true);
     }
 
     /**
