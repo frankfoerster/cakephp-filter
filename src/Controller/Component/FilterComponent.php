@@ -21,7 +21,6 @@ use Cake\ORM\Query;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
-use DateTime;
 use FrankFoerster\Filter\Model\Entity\Filter;
 use FrankFoerster\Filter\Model\Table\FiltersTable;
 
@@ -270,12 +269,15 @@ class FilterComponent extends Component
     public function paginate(Query $query, array $countFields = [], bool $total = false): Query
     {
         $limit = $this->defaultLimit;
-        if (in_array((integer)$this->request->getQuery('l', 0), $this->limits)) {
-            $limit = (integer)$this->request->getQuery('l');
+        if (in_array((int)$this->request->getQuery('l', 0), $this->limits)) {
+            $limit = (int)$this->request->getQuery('l');
             $this->activeLimit = $limit;
         }
         if ($this->activeLimit <= 0) {
-            $cookieData = self::_getCookieData($this->request, $this->getConfig('cookieName'));
+            $cookieName = $this->getConfig('cookieName');
+            $cookieData = $cookieName !== false
+                ? self::_getCookieData($this->request, $cookieName)
+                : [];
             $lastLimit = Hash::get($cookieData, join('.', [
                 'LIMIT_' . $this->request->getParam('plugin'),
                 $this->controller->getName(),
@@ -383,21 +385,24 @@ class FilterComponent extends Component
         ]);
         $limitPath = str_replace('FILTER_', 'LIMIT_', $path);
 
-        $cookieData = self::_getCookieData($this->request, $this->getConfig('cookieName'));
+        $cookieName = $this->getConfig('cookieName');
+        if ($cookieName !== false) {
+            $cookieData = self::_getCookieData($this->request, $cookieName);
 
-        if ($this->activeLimit && $this->activeLimit !== $this->defaultLimit) {
-            $cookieData = Hash::insert($cookieData, $limitPath, $this->activeLimit);
-        } else {
-            $cookieData = Hash::remove($cookieData, $limitPath);
+            if ($this->activeLimit && $this->activeLimit !== $this->defaultLimit) {
+                $cookieData = Hash::insert($cookieData, $limitPath, $this->activeLimit);
+            } else {
+                $cookieData = Hash::remove($cookieData, $limitPath);
+            }
+
+            if (!empty($filterOptions)) {
+                $cookieData = Hash::insert($cookieData, $path, $filterOptions);
+            } else {
+                $cookieData = Hash::remove($cookieData, $path);
+            }
+
+            $this->_writeCookieData($cookieData);
         }
-
-        if (!empty($filterOptions)) {
-            $cookieData = Hash::insert($cookieData, $path, $filterOptions);
-        } else {
-            $cookieData = Hash::remove($cookieData, $path);
-        }
-
-        $this->_writeCookieData($cookieData);
 
         $this->controller->set('filter', [
             'useQuery' => $this->getConfig('useQuery'),
